@@ -1,0 +1,2523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Work Order — Field Service Report</title>
+<style>
+  :root{
+    --navy:#16232E; --navy-2:#1F3140; --steel:#3D6B8C; --steel-light:#DCE7ED;
+    --amber:#D68A2D; --amber-dark:#B5701C; --paper:#F6F5F1; --card:#FFFFFF;
+    --line:#D9DCD9; --ink:#1B2229; --ink-soft:#5B6570; --success:#3D7A54; --danger:#B04A3D;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+  body{padding-bottom:40px;}
+  .app{max-width:640px;margin:0 auto;min-height:100vh;background:var(--paper);}
+
+  .header{background:var(--navy);color:#fff;padding:18px 18px 14px;position:sticky;top:0;z-index:20;}
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .header-title{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);font-weight:700;}
+  .header-wo{font-family:var(--mono);font-size:13px;color:#B9C6CF;margin-top:2px;}
+  .status-chip{font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:4px 9px;border-radius:20px;color:#DCE7ED;white-space:nowrap;}
+  .progress-track{display:flex;gap:4px;margin-top:14px;}
+  .progress-seg{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.15);}
+  .progress-seg.done{background:var(--amber);}
+  .progress-seg.active{background:#fff;}
+  .step-label{margin-top:8px;font-size:12px;color:#B9C6CF;}
+  .step-label b{color:#fff;}
+
+  .content{padding:18px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px;}
+  .card h2{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--steel);margin:0 0 4px;font-weight:700;}
+  .card .sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;}
+  label.field-label{display:block;font-size:12px;font-weight:600;color:var(--ink);margin:14px 0 6px;}
+  label.field-label:first-child{margin-top:0;}
+  input[type=text],input[type=date],textarea,select{
+    width:100%;border:1px solid var(--line);border-radius:7px;padding:10px 11px;font-size:14.5px;
+    background:#FCFCFB;color:var(--ink);font-family:var(--sans);
+  }
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--steel);outline-offset:1px;border-color:var(--steel);}
+  textarea{resize:vertical;min-height:64px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .btn{appearance:none;border:none;border-radius:8px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-primary{background:var(--navy);color:#fff;width:100%;}
+  .btn-primary:active{background:var(--navy-2);}
+  .btn-amber{background:var(--amber);color:#241505;width:100%;}
+  .btn-amber:active{background:var(--amber-dark);}
+  .btn-ghost{background:transparent;color:var(--steel);border:1px solid var(--steel-light);width:100%;}
+  .btn-outline-sm{background:transparent;color:var(--ink-soft);border:1px solid var(--line);padding:7px 12px;font-size:12.5px;font-weight:600;}
+  .btn-danger-sm{background:transparent;color:var(--danger);border:1px solid #E5C9C3;padding:7px 12px;font-size:12.5px;font-weight:600;}
+  .btn-row{display:flex;gap:10px;margin-top:18px;}
+  .btn-row .btn{flex:1;width:auto;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  .photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px;}
+  .report-photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px;}
+  .report-photo-grid img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
+  .photo-slot{position:relative;border:1.5px dashed var(--line);border-radius:8px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#FAFAF8;cursor:pointer;}
+  .photo-slot img{width:100%;height:100%;object-fit:cover;}
+  .photo-slot .placeholder{text-align:center;color:var(--ink-soft);font-size:11.5px;padding:8px;}
+  .photo-slot .placeholder .icon{font-size:22px;display:block;margin-bottom:4px;}
+  .photo-slot input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .photo-slot .remove-x{position:absolute;top:4px;right:4px;background:rgba(20,20,20,.65);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;line-height:1;cursor:pointer;z-index:2;}
+  .photo-tag{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.55));color:#fff;font-size:10px;padding:12px 6px 4px;text-align:center;text-transform:uppercase;letter-spacing:.05em;}
+
+  .log-entry{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#FCFCFB;}
+  .log-entry .meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);margin-bottom:4px;}
+  .log-entry .txt{font-size:13.5px;line-height:1.4;}
+  .empty-note{font-size:12.5px;color:var(--ink-soft);font-style:italic;padding:8px 0;}
+
+  .part-card{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;background:#FCFCFB;}
+  .part-card .part-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .part-card .part-head .idx{font-family:var(--mono);font-size:11px;color:var(--steel);font-weight:700;}
+  .part-photo-row{display:flex;gap:10px;align-items:center;margin-top:8px;}
+  .part-photo-thumb{width:56px;height:56px;border-radius:6px;border:1px solid var(--line);object-fit:cover;flex-shrink:0;background:#F1F1EE;}
+  .part-photo-btn{position:relative;flex-shrink:0;}
+  .part-photo-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+  .sig-box{border:1.5px solid var(--line);border-radius:8px;background:#fff;touch-action:none;width:100%;height:160px;display:block;}
+  .sig-wrap{position:relative;}
+  .sig-hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:#B6BDC2;pointer-events:none;}
+  .sig-signed .sig-hint{display:none;}
+
+  .stars{display:flex;gap:6px;justify-content:center;margin:10px 0 4px;}
+  .star{font-size:38px;cursor:pointer;color:#D9DCD9;line-height:1;user-select:none;transition:color .1s;}
+  .star.on{color:var(--amber);}
+  .csat-label{text-align:center;font-size:12.5px;color:var(--ink-soft);min-height:16px;}
+
+  .check-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .check-row:last-of-type{border-bottom:none;}
+  .check-row input{width:18px;height:18px;flex-shrink:0;}
+
+  .order-choice{cursor:pointer;transition:border-color .15s;}
+  .order-choice:active{border-color:var(--steel);}
+
+  .machine-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .machine-header .idx{font-family:var(--mono);color:var(--steel);font-weight:700;font-size:12px;}
+  .machine-header .summary{font-size:14px;font-weight:600;margin-top:2px;}
+  .machine-header .chev{font-size:20px;color:var(--ink-soft);}
+  .defect-row{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:#FCFCFB;}
+  .defect-row .dhead{display:flex;justify-content:space-between;align-items:center;}
+  .defect-label-static{font-weight:600;font-size:14px;}
+  .defect-label-input{font-weight:600;border:none;background:transparent;padding:0;font-size:14px;width:60%;}
+  .photo-mini-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px;}
+  .photo-mini-grid .photo-slot{aspect-ratio:1/1;}
+  .op-photo-slot{width:100px;aspect-ratio:1/1;}
+
+  .report{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px;font-size:13.5px;line-height:1.5;}
+  .report h1{font-size:17px;margin:0 0 2px;}
+  .report .rmeta{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-bottom:16px;}
+  .report h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--steel);border-bottom:1px solid var(--line);padding-bottom:5px;margin:18px 0 8px;}
+  .report h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:12px 0 6px;}
+  .report table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .report table th, .report table td{border:1px solid var(--line);padding:6px 8px;text-align:left;}
+  .report table th{background:var(--steel-light);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--navy-2);}
+  .report .img-pair{display:flex;gap:10px;margin-top:6px;}
+  .report .img-pair figure{flex:1;margin:0;}
+  .report .img-pair img{width:100%;border-radius:6px;border:1px solid var(--line);object-fit:cover;aspect-ratio:4/3;}
+  .report .img-pair figcaption{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-top:4px;text-align:center;}
+  .report .sig-final{display:flex;gap:14px;margin-top:6px;}
+  .report .sig-final .who{flex:1;text-align:center;}
+  .report .sig-final img{width:100%;height:70px;object-fit:contain;border-bottom:1.5px solid var(--ink);}
+  .report .sig-final .name{font-size:12.5px;font-weight:700;margin-top:6px;}
+  .report .sig-final .desig{font-size:11px;color:var(--ink-soft);}
+  .report .csat-final{text-align:center;}
+  .report .csat-final .stars-static{font-size:24px;color:var(--amber);letter-spacing:2px;}
+  .report .op-row{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;}
+  .report .op-row img.op-photo{width:50px;height:50px;object-fit:cover;border-radius:6px;background:#F1F1EE;}
+  .report .op-row img.op-sig{width:100px;height:40px;object-fit:contain;border-bottom:1.5px solid var(--ink);}
+
+  @media print{
+    .header, .no-print{display:none !important;}
+    .app{max-width:100%;}
+    body{background:#fff;}
+    .content{padding:0;}
+    .report{border:none;padding:0;}
+  }
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:100;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .toast.show{opacity:1;}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(15,20,25,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;}
+  .modal-box{background:#fff;border-radius:12px;padding:20px;max-width:340px;width:100%;}
+  .modal-box h3{margin:0 0 8px;font-size:16px;}
+  .modal-box p{margin:0;font-size:13.5px;color:var(--ink-soft);}
+
+  .report img{cursor:zoom-in;}
+  .img-lightbox-backdrop{position:fixed;inset:0;background:rgba(10,14,18,.88);display:flex;align-items:center;justify-content:center;z-index:500;padding:24px;cursor:zoom-out;}
+  .img-lightbox-backdrop img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.5);cursor:zoom-out;}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+(function(){
+  const SERVICE_STEPS = ['job','before','troubleshoot','parts','after','report','signoff','csat','done'];
+  const INSTALL_STEPS = ['job','siteready','machines','training','suggestions','report','signoff','csat','done'];
+
+  const IMAGE_CATS = [
+    ['before','Before'],['after','After'],['cameraPosition','Camera Position'],
+    ['cameraIsolationClamp','Camera Isolation Clamp'],['cabinetPosition','Cabinet Position'],
+    ['cabinetSerialImg','Cabinet Serial No.'],['sensorConnection','Sensor Connection'],
+    ['relayConnection','Relay Connection'],['powerSupplyMcb','Power Supply (MCB)']
+  ];
+
+  const state = {
+    orderType: null,
+    step: 0,
+    machineMode: 'single',
+    numMachines: 2,
+    job: { wo:"", customer:"", location:"", machine:"", engineer:"", date:new Date().toISOString().slice(0,10), startDate:new Date().toISOString().slice(0,10), endDate:"" },
+    before: { photos:[], comments:"" },
+    troubleshoot: [],
+    parts: [ mkPart() ],
+    siteReadiness: { power:false, networkPoint:false, mounting:false, lighting:false, notes:"" },
+    machines: [ mkMachine() ],
+    operators: [ mkOperator() ],
+    suggestion: "",
+    maintenanceGuide: "",
+    after: { photos:[], comments:"" },
+    signOff: {
+      engineer:{ name:"", designation:"", sig:null },
+      customer:{ name:"", designation:"", sig:null }
+    },
+    csat: { rating:0, comment:"" },
+    showResetConfirm: false,
+    recent: { customers:[], locations:[], engineers:[], kmBrands:[] },
+    pendingDraft: null,
+    draftHandled: false,
+    serverUrl: '',
+    supabaseKey: '',
+    submitStatus: 'idle',
+    submitError: '',
+    submittedOrderId: '',
+    gateView: 'choose',
+    myName: '',
+    assignedList: [],
+    assignedLoading: false,
+    assignedError: '',
+    currentAssignmentId: null
+  };
+
+  function mkPart(){ return { name:"", partNo:"", serialNo:"", qty:1, spec:"", photo:null }; }
+  function mkOperator(){ return { name:"", topic:"", photo:null, sig:null }; }
+  function defaultDefects(){
+    return [
+      {label:'Lycra', captured:'no', rollNo:'', rotationNo:'', comment:'', custom:false},
+      {label:'Lycra mix / Lycra jump', captured:'no', rollNo:'', rotationNo:'', comment:'', custom:false},
+      {label:'Needle broke', captured:'no', rollNo:'', rotationNo:'', comment:'', custom:false},
+      {label:'Press Off / Shutoff', captured:'no', rollNo:'', rotationNo:'', comment:'', custom:false},
+      {label:'Double yarn / Twoply', captured:'no', rollNo:'', rotationNo:'', comment:'', custom:false},
+      {label:'Hole', captured:'no', rollNo:'', rotationNo:'', comment:'', custom:false}
+    ];
+  }
+  function machineImageCats(m){
+    const cats = IMAGE_CATS.slice();
+    cats.push(['cam1Light','Camera 1 Light']);
+    if(m.numCams==='2') cats.push(['cam2Light','Camera 2 Light']);
+    return cats;
+  }
+
+  function mkMachine(){
+    const images = {};
+    IMAGE_CATS.forEach(([k])=>{ images[k] = []; });
+    images.cam1Light = []; images.cam2Light = [];
+    return {
+      machineType:"Single Jersey", numCams:"1",
+      cabinetSerial:"", tailscaleIp:"", cabinetType:"SS",
+      kmBrand:"", kmModel:"", kmSerial:"", kmName:"", kmGauge:"", kmDiameter:"", kmProgram:"",
+      images, defects: defaultDefects(), expanded:true
+    };
+  }
+
+  function duplicateMachine(idx){
+    const src = state.machines[idx];
+    const copy = mkMachine();
+    copy.machineType = src.machineType;
+    copy.cabinetType = src.cabinetType;
+    copy.numCams = src.numCams;
+    copy.kmBrand = src.kmBrand;
+    copy.kmModel = src.kmModel;
+    copy.kmGauge = src.kmGauge;
+    copy.kmDiameter = src.kmDiameter;
+    state.machines.forEach(m=>{ m.expanded = false; });
+    copy.expanded = true;
+    state.machines.splice(idx+1, 0, copy);
+    render();
+    toast('Machine duplicated — fill in its unique details');
+  }
+
+  function steps(){ return state.orderType==='installation' ? INSTALL_STEPS : SERVICE_STEPS; }
+  function currentKey(){ return steps()[state.step]; }
+  function goNext(){ state.step++; render(); saveDraft(); }
+  function goBack(){ state.step--; render(); saveDraft(); }
+
+  function stepLabel(key){
+    const t = state.orderType;
+    switch(key){
+      case 'job': return 'Job Details';
+      case 'before': return t==='installation' ? 'Pre-Install Photos' : 'Before Work';
+      case 'troubleshoot': return 'Troubleshooting';
+      case 'siteready': return 'Site Readiness';
+      case 'machines': return 'Machines';
+      case 'parts': return 'Parts Used';
+      case 'training': return 'Training';
+      case 'suggestions': return 'Suggestions';
+      case 'after': return t==='installation' ? 'Completed Install' : 'After Work';
+      case 'report': return 'Report';
+      case 'signoff': return 'Sign-Off';
+      case 'csat': return 'CSAT';
+      case 'done': return 'Done';
+      default: return '';
+    }
+  }
+
+  function toast(msg){
+    const t = document.getElementById('toast') || (function(){
+      const el = document.createElement('div'); el.id='toast'; el.className='toast'; document.body.appendChild(el); return el;
+    })();
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 1800);
+  }
+
+  function fileToDataUrl(file){
+    return new Promise((res,rej)=>{
+      const r = new FileReader();
+      r.onload = ()=>res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function esc(s){ return (s||"").toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmtTime(d){ return d.toLocaleString(undefined,{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  function val(id){ const el = document.getElementById(id); return el ? el.value : ''; }
+
+  // ================= Persistent storage: drafts, recent values, WO numbering =================
+  // Falls back to localStorage when window.storage isn't available (e.g. this file
+  // downloaded and opened directly, rather than run live inside a Claude artifact).
+  async function storageGetSafe(key){
+    try{
+      if(typeof window.storage !== 'undefined' && window.storage){
+        const r = await window.storage.get(key, false);
+        return r ? r.value : null;
+      }
+    }catch(e){}
+    try{ return localStorage.getItem(key); }catch(e){ return null; }
+  }
+  async function storageSetSafe(key, value){
+    try{
+      if(typeof window.storage !== 'undefined' && window.storage){
+        await window.storage.set(key, value, false);
+        return true;
+      }
+    }catch(e){}
+    try{ localStorage.setItem(key, value); return true; }catch(e){ return false; }
+  }
+  async function storageDeleteSafe(key){
+    try{
+      if(typeof window.storage !== 'undefined' && window.storage){
+        await window.storage.delete(key, false);
+        return;
+      }
+    }catch(e){}
+    try{ localStorage.removeItem(key); }catch(e){}
+  }
+
+  function pushRecent(list, value, max){
+    max = max || 8;
+    value = (value||'').trim();
+    if(!value) return list;
+    const filtered = list.filter(v=>v.toLowerCase() !== value.toLowerCase());
+    filtered.unshift(value);
+    return filtered.slice(0, max);
+  }
+
+  async function loadRecents(){
+    const keys = ['customers','locations','engineers','kmBrands'];
+    for(const k of keys){
+      const raw = await storageGetSafe('recent:'+k);
+      if(raw){ try{ state.recent[k] = JSON.parse(raw); }catch(e){} }
+    }
+  }
+
+  async function saveRecents(){
+    for(const k of Object.keys(state.recent)){
+      storageSetSafe('recent:'+k, JSON.stringify(state.recent[k]));
+    }
+  }
+
+  async function generateWoNumber(){
+    const today = new Date();
+    const ymd = today.getFullYear().toString() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
+    const key = 'counter:wo:'+ymd;
+    let seq = 1;
+    const raw = await storageGetSafe(key);
+    if(raw){ seq = (parseInt(raw,10)||0) + 1; }
+    await storageSetSafe(key, String(seq));
+    return `WO-${ymd}-${String(seq).padStart(3,'0')}`;
+  }
+
+  // ---- Offline submission queue: if the server can't be reached, save the
+  // completed order locally and retry automatically once connectivity returns,
+  // rather than losing the submission or blocking the engineer. ----
+  async function getSubmissionQueue(){
+    try{ const raw = await storageGetSafe('queue:submissions'); return raw ? JSON.parse(raw) : []; }
+    catch(e){ return []; }
+  }
+  async function setSubmissionQueue(queue){
+    await storageSetSafe('queue:submissions', JSON.stringify(queue));
+  }
+  async function enqueueSubmission(url, key, payload, assignmentId){
+    const queue = await getSubmissionQueue();
+    queue.push({ url, key, payload, assignmentId, queuedAt: new Date().toISOString() });
+    await setSubmissionQueue(queue);
+  }
+  let flushInFlight = false;
+  async function flushSubmissionQueue(){
+    if(flushInFlight) return;
+    flushInFlight = true;
+    try{
+      const queue = await getSubmissionQueue();
+      if(!queue.length) return;
+      const remaining = [];
+      for(const item of queue){
+        try{
+          await performSubmission(item.payload, item.assignmentId, item.url, item.key);
+          toast('Queued order submitted ✓');
+        }catch(e){
+          remaining.push(item);
+        }
+      }
+      await setSubmissionQueue(remaining);
+      if(currentKey && state.orderType && currentKey()==='done') render();
+    } finally {
+      flushInFlight = false;
+    }
+  }
+
+  function buildDraftSnapshot(stripImages){
+    const snap = JSON.parse(JSON.stringify({
+      orderType: state.orderType, step: state.step, machineMode: state.machineMode, numMachines: state.numMachines,
+      job: state.job, before: state.before, troubleshoot: state.troubleshoot, parts: state.parts,
+      siteReadiness: state.siteReadiness, machines: state.machines, operators: state.operators,
+      suggestion: state.suggestion, maintenanceGuide: state.maintenanceGuide, after: state.after,
+      signOff: state.signOff, csat: state.csat, currentAssignmentId: state.currentAssignmentId
+    }));
+    snap.savedAt = new Date().toISOString();
+    if(stripImages){
+      snap.before.photos = []; snap.after.photos = [];
+      snap.parts.forEach(p=>{ p.photo = null; });
+      snap.machines.forEach(m=>{ Object.keys(m.images).forEach(k=>{ m.images[k] = []; }); });
+      snap.operators.forEach(o=>{ o.photo = null; o.sig = null; });
+      snap.signOff.engineer.sig = null; snap.signOff.customer.sig = null;
+    }
+    return snap;
+  }
+
+  let draftSaveInFlight = false;
+  async function saveDraft(){
+    if(draftSaveInFlight || !state.orderType) return;
+    draftSaveInFlight = true;
+    try{
+      let json = JSON.stringify(buildDraftSnapshot(false));
+      if(json.length > 4500000) json = JSON.stringify(buildDraftSnapshot(true));
+      const ok = await storageSetSafe('draft:order', json);
+      if(!ok) throw new Error('save failed');
+    }catch(e){
+      try{ await storageSetSafe('draft:order', JSON.stringify(buildDraftSnapshot(true))); }catch(e2){}
+    } finally {
+      draftSaveInFlight = false;
+    }
+  }
+
+  async function clearDraft(){ await storageDeleteSafe('draft:order'); }
+
+  function restoreDraftIntoState(snap){
+    ['orderType','step','machineMode','numMachines','job','before','troubleshoot','parts',
+     'siteReadiness','machines','operators','suggestion','maintenanceGuide','after','signOff','csat',
+     'currentAssignmentId'
+    ].forEach(k=>{ if(snap[k]!==undefined) state[k] = snap[k]; });
+  }
+  // ================= end persistent storage helpers =================
+
+
+  function render(){
+    const app = document.getElementById('app');
+    if(state.pendingDraft && !state.draftHandled){
+      app.innerHTML = resumeDraftGateHtml();
+      bindResumeDraftGate();
+      return;
+    }
+    if(!state.orderType){
+      app.innerHTML = orderTypeGateHtml();
+      bindOrderTypeGate();
+      return;
+    }
+    app.innerHTML = headerHtml() + `<div class="content">${stepHtml()}</div>`;
+    bindEvents();
+    if(currentKey()==='signoff'){ setTimeout(setupSignaturePads, 0); }
+    if(currentKey()==='training' && state.orderType==='installation'){ setTimeout(setupOperatorSigPads, 0); }
+  }
+
+  function resumeDraftGateHtml(){
+    const d = state.pendingDraft;
+    const savedWhen = d.savedAt ? new Date(d.savedAt).toLocaleString(undefined,{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'earlier';
+    const label = d.orderType==='installation' ? 'Machine Installation Order' : 'Service / Repair Work Order';
+    return `
+    <div class="header">
+      <div class="header-top">
+        <div><div class="header-title">Draft Found</div><div class="header-wo">Saved ${savedWhen}</div></div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="card">
+        <h2>Continue where you left off?</h2>
+        <p class="sub">${label}${d.job && d.job.customer ? ' — '+esc(d.job.customer) : ''}${d.job && d.job.wo ? ' ('+esc(d.job.wo)+')' : ''}</p>
+      </div>
+      <div class="btn-row"><button class="btn btn-amber" id="resumeDraftBtn">Resume Draft</button></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="discardDraftBtn">Start New (discard draft)</button></div>
+    </div>`;
+  }
+
+  function bindResumeDraftGate(){
+    document.getElementById('resumeDraftBtn').onclick = ()=>{
+      restoreDraftIntoState(state.pendingDraft);
+      state.draftHandled = true;
+      state.pendingDraft = null;
+      render();
+    };
+    document.getElementById('discardDraftBtn').onclick = async ()=>{
+      state.draftHandled = true;
+      state.pendingDraft = null;
+      await clearDraft();
+      render();
+    };
+  }
+
+  function orderTypeGateHtml(){
+    if(state.gateView==='settings') return settingsGateHtml();
+    if(state.gateView==='assigned') return assignedGateHtml();
+
+    return `
+    <div class="header">
+      <div class="header-top">
+        <div><div class="header-title">New Order</div><div class="header-wo">Choose order type</div></div>
+        <button class="status-chip no-print" id="gateSettingsBtn" style="cursor:pointer;border:none;">⚙️ Settings</button>
+      </div>
+    </div>
+    <div class="content">
+      ${state.serverUrl ? `<div class="card order-choice" data-choose-assigned="1">
+        <h2>📋 My Assigned Orders</h2>
+        <p class="sub" style="margin-bottom:0;">Pick up an order the office has already scheduled for you.</p>
+      </div>` : ''}
+      <div class="card order-choice" data-choose="service">
+        <h2>Service / Repair Work Order</h2>
+        <p class="sub" style="margin-bottom:0;">Breakdown calls, AMC visits, troubleshooting and part replacement on an existing installation.</p>
+      </div>
+      <div class="card order-choice" data-choose="installation">
+        <h2>Machine Installation Order</h2>
+        <p class="sub" style="margin-bottom:0;">New system installation — site readiness, per-machine setup, testing, training and network setup.</p>
+      </div>
+    </div>`;
+  }
+
+  function settingsGateHtml(){
+    return `
+    <div class="header">
+      <div class="header-top">
+        <div><div class="header-title">Settings</div><div class="header-wo">This device</div></div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="card">
+        <h2>Supabase Project</h2>
+        <p class="sub">Where completed orders are submitted, and where assigned orders are fetched from.</p>
+        <label class="field-label" style="margin-top:0;">Supabase URL</label>
+        <input type="text" id="s_server_url" value="${esc(state.serverUrl)}" placeholder="e.g. https://xxxx.supabase.co">
+        <label class="field-label">Supabase Anon Key</label>
+        <input type="text" id="s_supabase_key" value="${esc(state.supabaseKey)}" placeholder="Paste the anon/public API key">
+        <label class="field-label">Your Name</label>
+        <input type="text" id="s_my_name" value="${esc(state.myName)}" placeholder="For fetching orders assigned to you">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="settingsBackBtn">← Back</button>
+        <button class="btn btn-primary" id="settingsSaveBtn">Save</button>
+      </div>
+    </div>`;
+  }
+
+  function assignedGateHtml(){
+    let body;
+    if(state.assignedLoading){
+      body = `<div class="card"><p class="sub" style="margin:0;">Loading assigned orders…</p></div>`;
+    } else if(state.assignedError){
+      body = `<div class="card"><p class="sub" style="margin:0;color:var(--danger);">⚠️ ${esc(state.assignedError)}</p></div>`;
+    } else if(!state.assignedList.length){
+      body = `<div class="card"><p class="sub" style="margin:0;">No orders currently assigned to you.</p></div>`;
+    } else {
+      body = state.assignedList.map(a=>`
+        <div class="card order-choice" data-pick-assignment="${a.id}">
+          <h2>${a.order_type==='installation'?'Installation':'Service'} — ${esc(a.customer)}</h2>
+          <p class="sub" style="margin-bottom:0;">${esc(a.location)||'—'} · Scheduled ${esc(a.scheduled_date)||'—'}${a.notes ? ' · '+esc(a.notes) : ''}</p>
+        </div>`).join('');
+    }
+    return `
+    <div class="header">
+      <div class="header-top">
+        <div><div class="header-title">My Assigned Orders</div><div class="header-wo">${esc(state.myName)||'Set your name in Settings'}</div></div>
+      </div>
+    </div>
+    <div class="content">${body}
+      <div class="btn-row"><button class="btn btn-ghost" id="assignedBackBtn">← Back</button></div>
+    </div>`;
+  }
+
+  function bindOrderTypeGate(){
+    if(state.gateView==='settings'){
+      document.getElementById('settingsBackBtn').onclick = ()=>{ state.gateView='choose'; render(); };
+      document.getElementById('settingsSaveBtn').onclick = ()=>{
+        state.serverUrl = val('s_server_url').trim().replace(/\/+$/,'');
+        state.supabaseKey = val('s_supabase_key').trim();
+        state.myName = val('s_my_name').trim();
+        storageSetSafe('settings:serverUrl', state.serverUrl);
+        storageSetSafe('settings:supabaseKey', state.supabaseKey);
+        storageSetSafe('settings:myName', state.myName);
+        toast('Settings saved');
+        state.gateView = 'choose';
+        render();
+      };
+      return;
+    }
+    if(state.gateView==='assigned'){
+      document.getElementById('assignedBackBtn').onclick = ()=>{ state.gateView='choose'; render(); };
+      document.querySelectorAll('[data-pick-assignment]').forEach(card=>{
+        card.onclick = ()=>{
+          const a = state.assignedList.find(x=>x.id===card.getAttribute('data-pick-assignment'));
+          if(!a) return;
+          applyAssignmentPrefill(a);
+        };
+      });
+      return;
+    }
+    document.querySelectorAll('[data-choose]').forEach(card=>{
+      card.onclick = async ()=>{
+        state.orderType = card.getAttribute('data-choose');
+        state.step = 0;
+        if(!state.job.wo){
+          try{ state.job.wo = await generateWoNumber(); }catch(e){}
+        }
+        render();
+      };
+    });
+    const assignedCard = document.querySelector('[data-choose-assigned]');
+    if(assignedCard) assignedCard.onclick = ()=>{ fetchAssignedOrders(); };
+    const settingsBtn = document.getElementById('gateSettingsBtn');
+    if(settingsBtn) settingsBtn.onclick = ()=>{ state.gateView = 'settings'; render(); };
+  }
+
+  async function fetchAssignedOrders(){
+    state.gateView = 'assigned';
+    state.assignedLoading = true;
+    state.assignedError = '';
+    render();
+    try{
+      const url = state.serverUrl.replace(/\/+$/,'');
+      const key = state.supabaseKey;
+      if(!url || !key) throw new Error('Set your Supabase URL and Anon Key in Settings first');
+      const res = await fetch(
+        `${url}/rest/v1/assignments?engineer=ilike.*${encodeURIComponent(state.myName)}*&status=eq.scheduled&order=scheduled_date.asc`,
+        { headers: { 'apikey': key, 'Authorization': `Bearer ${key}` } }
+      );
+      if(!res.ok) throw new Error('Supabase responded with status ' + res.status);
+      state.assignedList = await res.json();
+    }catch(e){
+      state.assignedError = e.message || 'Could not reach the server';
+    }
+    state.assignedLoading = false;
+    render();
+  }
+
+  function applyAssignmentPrefill(a){
+    state.orderType = a.order_type;
+    state.currentAssignmentId = a.id;
+    state.job.customer = a.customer || '';
+    state.job.location = a.location || '';
+    state.job.engineer = state.myName || '';
+    state.step = 0;
+    if(!state.job.wo){ generateWoNumber().then(wo=>{ state.job.wo = wo; }); }
+    // Let the office's prefill notes flow into Job details visibly for the engineer
+    if(a.notes) toast('Assignment notes: ' + a.notes);
+    render();
+  }
+
+  function headerHtml(){
+    const keys = steps();
+    const idx = state.step;
+    const label = stepLabel(keys[idx]);
+    const total = keys.length-1;
+    const segs = keys.slice(0,-1).map((k,i)=>{
+      let cls='progress-seg';
+      if(i<idx) cls+=' done'; else if(i===idx) cls+=' active';
+      return `<div class="${cls}"></div>`;
+    }).join('');
+    return `
+    <div class="header">
+      <div class="header-top">
+        <div>
+          <div class="header-title">${state.orderType==='installation' ? 'Installation Order' : 'Work Order'}</div>
+          <div class="header-wo">${esc(state.job.wo) || 'WO # — not set'}</div>
+        </div>
+        <div class="status-chip">${currentKey()==='done'?'Completed':'In Progress'}</div>
+      </div>
+      <div class="progress-track">${segs}</div>
+      <div class="step-label">Step ${Math.min(idx+1, total)} of ${total} — <b>${label}</b></div>
+    </div>`;
+  }
+
+  function stepHtml(){
+    switch(currentKey()){
+      case 'job': return jobDetailsStep();
+      case 'before': return photoCommentStep('before', 'Before Starting Work', 'Capture the machine / fault condition before touching anything, and log what you observe.');
+      case 'troubleshoot': return troubleshootStep();
+      case 'siteready': return siteReadyStep();
+      case 'machines': return machinesStep();
+      case 'parts': return partsStep();
+      case 'training': return trainingStep();
+      case 'suggestions': return suggestionsStep();
+      case 'after': return photoCommentStep('after', 'After Work Completed', 'Capture the finished result and summarize the fix.');
+      case 'report': return reportStep();
+      case 'signoff': return signOffStep();
+      case 'csat': return csatStep();
+      case 'done': return doneStep();
+      default: return '';
+    }
+  }
+
+  // ---- Job Details ----
+  function jobDetailsStep(){
+    const j = state.job;
+    const isInstall = state.orderType==='installation';
+    const dateFields = isInstall ? `
+      <div class="row2">
+        <div><label class="field-label">Start Date</label><input type="date" id="f_start_date" value="${esc(j.startDate)}"></div>
+        <div><label class="field-label">End Date</label><input type="date" id="f_end_date" value="${esc(j.endDate)}"></div>
+      </div>` : `
+      <label class="field-label">Date</label><input type="date" id="f_date" value="${esc(j.date)}">`;
+
+    const machineModeField = isInstall ? `
+      <label class="field-label">Machine Count</label>
+      <div class="row2">
+        <label class="check-row" style="border:1px solid var(--line);border-radius:7px;padding:10px;">
+          <input type="radio" name="machineMode" value="single" ${state.machineMode==='single'?'checked':''}> Single machine
+        </label>
+        <label class="check-row" style="border:1px solid var(--line);border-radius:7px;padding:10px;">
+          <input type="radio" name="machineMode" value="multiple" ${state.machineMode==='multiple'?'checked':''}> Multiple machines
+        </label>
+      </div>
+      ${state.machineMode==='multiple' ? `
+      <label class="field-label">No. of Machines</label>
+      <input type="text" inputmode="numeric" id="f_num_machines" value="${esc(String(state.numMachines))}" placeholder="e.g. 4" style="max-width:120px;">
+      ` : ''}` : `
+      <label class="field-label">Machine / Asset ID</label>
+      <input type="text" id="f_machine" value="${esc(j.machine)}" placeholder="e.g. Circular Knitting M-14">`;
+
+    return `
+    <div class="card">
+      <h2>Job Details</h2>
+      <p class="sub">Basic information for this ${isInstall?'installation':'service call'}.</p>
+      <label class="field-label">Work Order No.</label>
+      <input type="text" id="f_wo" value="${esc(j.wo)}" placeholder="e.g. WO-2026-0731">
+      <label class="field-label">Customer / Mill Name</label>
+      <input type="text" id="f_customer" value="${esc(j.customer)}" placeholder="e.g. Jay Jay Mills" list="dl_customers">
+      <datalist id="dl_customers">${state.recent.customers.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+      <label class="field-label">Location</label>
+      <input type="text" id="f_location" value="${esc(j.location)}" placeholder="City / Unit" list="dl_locations">
+      <datalist id="dl_locations">${state.recent.locations.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+      ${dateFields}
+      ${machineModeField}
+      <label class="field-label">Engineer Name</label>
+      <input type="text" id="f_engineer" value="${esc(j.engineer)}" placeholder="Attending engineer" list="dl_engineers">
+      <datalist id="dl_engineers">${state.recent.engineers.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="nextBtn">Start ${isInstall?'Installation':'Work'} Order →</button>
+    </div>`;
+  }
+
+  // ---- Photo + comment steps (service only) ----
+  function photoCommentStep(key, title, sub){
+    const d = state[key];
+    const tag = key==='before' ? 'Before' : 'After';
+    const photos = d.photos.map((p,i)=>`
+      <div class="photo-slot" data-key="${key}" data-idx="${i}">
+        <img src="${p}"><button class="remove-x" data-remove="${key}:${i}">✕</button><div class="photo-tag">${tag} ${i+1}</div>
+      </div>`).join('');
+    const addTile = `
+      <div class="photo-slot" data-key="${key}" data-idx="add">
+        <div class="placeholder"><span class="icon">📷</span>Add photo</div>
+        <input type="file" accept="image/*" multiple data-photo-add="${key}">
+      </div>`;
+    return `
+    <div class="card">
+      <h2>${title}</h2>
+      <p class="sub">${sub} Add as many photos as needed — there's no limit.</p>
+      <div class="photo-grid">${photos}${addTile}</div>
+      <label class="field-label">${key==='before' ? 'Starting comments' : 'Completion comments'}</label>
+      <textarea id="f_${key}_comments" placeholder="${key==='before' ? 'Describe the reported issue and initial observations…' : 'Describe the fix applied and final condition…'}">${esc(d.comments)}</textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue →</button>
+    </div>`;
+  }
+
+  // ---- Troubleshooting (service only) ----
+  function troubleshootStep(){
+    const entries = state.troubleshoot.map((e,i)=>`
+      <div class="log-entry">
+        <div class="meta"><span>${e.time}</span><button class="btn-danger-sm" data-del-log="${i}">Remove</button></div>
+        <div class="txt">${esc(e.text)}</div>
+      </div>`).join('') || `<div class="empty-note">No troubleshooting notes yet. Add each observation as you diagnose the fault.</div>`;
+    return `
+    <div class="card">
+      <h2>Troubleshooting</h2>
+      <p class="sub">Log each diagnostic step or observation, timestamped automatically.</p>
+      ${entries}
+      <label class="field-label">New note</label>
+      <textarea id="f_log_new" placeholder="e.g. Checked camera alignment — found lens bracket loose…"></textarea>
+      <div style="margin-top:10px;"><button class="btn btn-outline-sm" id="addLog" style="width:100%;">+ Add troubleshooting note</button></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue →</button>
+    </div>`;
+  }
+
+  // ---- Site Readiness (installation) ----
+  function siteReadyStep(){
+    const d = state.siteReadiness;
+    const items = [
+      {k:'power', label:'Power supply available and stable'},
+      {k:'networkPoint', label:'Network / LAN point available'},
+      {k:'mounting', label:'Mounting surface / bracket ready'},
+      {k:'lighting', label:'Lighting conditions adequate for camera'}
+    ];
+    const checks = items.map(it=>`
+      <label class="check-row"><input type="checkbox" id="sr_${it.k}" ${d[it.k]?'checked':''}> ${it.label}</label>`).join('');
+    return `
+    <div class="card">
+      <h2>Site Readiness Check</h2>
+      <p class="sub">Confirm the site is ready before installation begins.</p>
+      ${checks}
+      <label class="field-label">Notes</label>
+      <textarea id="sr_notes" placeholder="Any site issues or exceptions…">${esc(d.notes)}</textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue →</button>
+    </div>`;
+  }
+
+  // ---- Parts Used (service only) ----
+  function partsStep(){
+    const cards = state.parts.map((p,i)=>`
+      <div class="part-card">
+        <div class="part-head">
+          <span class="idx">PART ${i+1}</span>
+          ${state.parts.length>1 ? `<button class="btn-danger-sm" data-del-part="${i}">Remove</button>` : ''}
+        </div>
+        <label class="field-label">Part Name</label>
+        <input type="text" data-part="name:${i}" value="${esc(p.name)}" placeholder="e.g. Line-scan camera module">
+        <div class="row2">
+          <div><label class="field-label">Part No.</label><input type="text" data-part="partNo:${i}" value="${esc(p.partNo)}" placeholder="Part #"></div>
+          <div><label class="field-label">Serial No.</label><input type="text" data-part="serialNo:${i}" value="${esc(p.serialNo)}" placeholder="Serial #"></div>
+        </div>
+        <label class="field-label">Quantity</label>
+        <input type="text" inputmode="numeric" data-part="qty:${i}" value="${esc(String(p.qty))}" placeholder="1" style="max-width:100px;">
+        <label class="field-label">Specification</label>
+        <textarea data-part="spec:${i}" placeholder="Full spec / description of this part…">${esc(p.spec)}</textarea>
+        <div class="part-photo-row">
+          <img class="part-photo-thumb" src="${p.photo ? p.photo : ''}" style="${p.photo?'':'display:none;'}" data-part-thumb="${i}">
+          <button class="btn part-photo-btn btn-outline-sm">
+            ${p.photo ? 'Change photo' : '📷 Add part photo'}
+            <input type="file" accept="image/*" data-part-photo="${i}">
+          </button>
+        </div>
+      </div>`).join('');
+    return `
+    <div class="card">
+      <h2>Parts Used</h2>
+      <p class="sub">Record every part fitted, with its part number, serial number, quantity and a photo of the fixed part.</p>
+      ${cards}
+      <button class="btn btn-outline-sm" id="addPart" style="width:100%;margin-top:4px;">+ Add another part</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue →</button>
+    </div>`;
+  }
+
+  // ---- Machines (installation) ----
+  function renderPhotoCategory(mIdx, catKey, label){
+    const photos = state.machines[mIdx].images[catKey];
+    const thumbs = photos.map((p,i)=>`
+      <div class="photo-slot">
+        <img src="${p}"><button class="remove-x" data-mphoto-remove="${mIdx}:${catKey}:${i}">✕</button>
+      </div>`).join('');
+    const addTile = `
+      <div class="photo-slot">
+        <div class="placeholder"><span class="icon">📷</span></div>
+        <input type="file" accept="image/*" multiple data-mphoto-add="${mIdx}:${catKey}">
+      </div>`;
+    return `
+    <div style="margin-top:12px;">
+      <label class="field-label" style="margin-top:0;">${label}</label>
+      <div class="photo-mini-grid">${thumbs}${addTile}</div>
+    </div>`;
+  }
+
+  function machineCardHtml(m, i){
+    const summary = esc(m.kmName) || ('Machine '+(i+1));
+    if(!m.expanded){
+      return `
+      <div class="card">
+        <div class="machine-header" data-toggle-machine="${i}">
+          <div><span class="idx">MACHINE ${i+1}</span><div class="summary">${summary}</div></div>
+          <div class="chev">▾</div>
+        </div>
+      </div>`;
+    }
+    const defectRows = m.defects.map((d,di)=>`
+      <div class="defect-row">
+        <div class="dhead">
+          ${d.custom ? `<input type="text" class="defect-label-input" data-defect-label="${i}:${di}" value="${esc(d.label)}">` : `<div class="defect-label-static">${esc(d.label)}</div>`}
+          <button class="btn-danger-sm" data-del-defect="${i}:${di}">Remove</button>
+        </div>
+        <div class="row2" style="margin-top:8px;">
+          <div>
+            <label class="field-label" style="font-size:11px;">Captured</label>
+            <select data-defect="${i}:${di}:captured">
+              <option value="no" ${d.captured==='no'?'selected':''}>No</option>
+              <option value="yes" ${d.captured==='yes'?'selected':''}>Yes</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" style="font-size:11px;">Roll No.</label>
+            <input type="text" data-defect="${i}:${di}:rollNo" value="${esc(d.rollNo)}">
+          </div>
+        </div>
+        <label class="field-label" style="font-size:11px;">Rotation No.</label>
+        <input type="text" data-defect="${i}:${di}:rotationNo" value="${esc(d.rotationNo)}">
+        <label class="field-label" style="font-size:11px;">${d.captured==='no' ? 'Comments — why not captured' : 'Comments'}</label>
+        <input type="text" data-defect="${i}:${di}:comment" value="${esc(d.comment)}" placeholder="${d.captured==='no' ? 'e.g. Not encountered during test run, sensor range limitation…' : 'Any additional notes'}">
+      </div>`).join('');
+
+    const imageBlocks = machineImageCats(m).map(([k,label])=>renderPhotoCategory(i,k,label)).join('');
+
+    return `
+    <div class="card">
+      <div class="machine-header" data-toggle-machine="${i}" style="margin-bottom:12px;">
+        <div><span class="idx">MACHINE ${i+1}</span></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-outline-sm" data-dup-machine="${i}">📋 Duplicate</button>
+          ${state.machines.length>1 ? `<button class="btn-danger-sm" data-del-machine="${i}">Remove</button>` : ''}
+          <div class="chev">▴</div>
+        </div>
+      </div>
+
+      <label class="field-label" style="margin-top:0;">Type of Machine</label>
+      <select data-machine-select="machineType:${i}">
+        <option value="Single Jersey" ${m.machineType==='Single Jersey'?'selected':''}>Single Jersey</option>
+        <option value="Double Jersey" ${m.machineType==='Double Jersey'?'selected':''}>Double Jersey</option>
+        <option value="Interlock" ${m.machineType==='Interlock'?'selected':''}>Interlock</option>
+        <option value="Jacquard" ${m.machineType==='Jacquard'?'selected':''}>Jacquard</option>
+      </select>
+
+      <label class="field-label">Knit-I Cabinet Serial No.</label>
+      <input type="text" data-machine="cabinetSerial:${i}" value="${esc(m.cabinetSerial)}" placeholder="Cabinet serial number">
+      <div class="row2">
+        <div><label class="field-label">Tailscale IP</label><input type="text" data-machine="tailscaleIp:${i}" value="${esc(m.tailscaleIp)}" placeholder="100.x.x.x"></div>
+        <div>
+          <label class="field-label">Cabinet Type</label>
+          <select data-machine-select="cabinetType:${i}">
+            <option value="SS" ${m.cabinetType==='SS'?'selected':''}>SS</option>
+            <option value="SD" ${m.cabinetType==='SD'?'selected':''}>SD</option>
+            <option value="Super2Nova" ${m.cabinetType==='Super2Nova'?'selected':''}>Super2Nova</option>
+            <option value="Super3Nova" ${m.cabinetType==='Super3Nova'?'selected':''}>Super3Nova</option>
+          </select>
+        </div>
+      </div>
+      <label class="field-label">No. of Cameras</label>
+      <select data-machine-select="numCams:${i}" style="max-width:140px;">
+        <option value="1" ${m.numCams==='1'?'selected':''}>1</option>
+        <option value="2" ${m.numCams==='2'?'selected':''}>2</option>
+      </select>
+
+      <label class="field-label">Knitting Machine Brand</label>
+      <input type="text" data-machine="kmBrand:${i}" value="${esc(m.kmBrand)}" placeholder="e.g. Mayer &amp; Cie" list="dl_kmBrands_${i}">
+      <datalist id="dl_kmBrands_${i}">${state.recent.kmBrands.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+      <div class="row2">
+        <div><label class="field-label">Knitting Machine Model</label><input type="text" data-machine="kmModel:${i}" value="${esc(m.kmModel)}"></div>
+        <div><label class="field-label">Knitting Machine Serial No.</label><input type="text" data-machine="kmSerial:${i}" value="${esc(m.kmSerial)}"></div>
+      </div>
+      <label class="field-label">Knitting Machine Name (Machine No.)</label>
+      <input type="text" data-machine="kmName:${i}" value="${esc(m.kmName)}">
+      <div class="row2">
+        <div><label class="field-label">Gauge</label><input type="text" data-machine="kmGauge:${i}" value="${esc(m.kmGauge)}" placeholder="e.g. 28"></div>
+        <div><label class="field-label">Diameter</label><input type="text" data-machine="kmDiameter:${i}" value="${esc(m.kmDiameter)}" placeholder='e.g. 34"'></div>
+      </div>
+      <label class="field-label">Current Program Details</label>
+      <textarea data-machine="kmProgram:${i}" placeholder="Program name/number, settings…">${esc(m.kmProgram)}</textarea>
+
+      <h2 style="margin-top:20px;">Installation Photos</h2>
+      ${imageBlocks}
+
+      <h2 style="margin-top:20px;">Engineer Defect Commitment &amp; Testing</h2>
+      ${defectRows}
+      <button class="btn btn-outline-sm" data-add-defect="${i}" style="width:100%;">+ Add defect type</button>
+    </div>`;
+  }
+
+  function machinesStep(){
+    const cards = state.machines.map((m,i)=>machineCardHtml(m,i)).join('');
+    return `
+    <div class="card">
+      <h2>Machines</h2>
+      <p class="sub">Cabinet &amp; knitting machine specs, installation photos and defect testing per machine.</p>
+    </div>
+    ${cards}
+    <div class="card" style="text-align:center;">
+      <button class="btn btn-outline-sm" id="addMachine" style="width:100%;">+ Add another machine</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue →</button>
+    </div>`;
+  }
+
+  // ---- Training (installation) ----
+  function operatorCardHtml(op, i){
+    return `
+    <div class="part-card">
+      <div class="part-head">
+        <span class="idx">PERSON ${i+1}</span>
+        ${state.operators.length>1 ? `<button class="btn-danger-sm" data-del-operator="${i}">Remove</button>` : ''}
+      </div>
+      <label class="field-label" style="margin-top:0;">Name</label>
+      <input type="text" data-operator="name:${i}" value="${esc(op.name)}" placeholder="Operator name">
+      <label class="field-label">Topic Trained</label>
+      <textarea data-operator="topic:${i}" placeholder="e.g. Daily startup, defect review, alert handling, escalation process…">${esc(op.topic)}</textarea>
+
+      <label class="field-label">Photograph</label>
+      <div class="photo-slot op-photo-slot">
+        ${op.photo ? `<img src="${op.photo}"><button class="remove-x" data-op-photo-remove="${i}">✕</button>` :
+          `<div class="placeholder"><span class="icon">📷</span></div><input type="file" accept="image/*" data-op-photo-add="${i}">`}
+      </div>
+
+      <label class="field-label">Signature</label>
+      <div class="sig-wrap ${op.sig?'sig-signed':''}" id="op_sig_wrap_${i}">
+        <canvas class="sig-box" id="sig_operator_${i}"></canvas>
+        <div class="sig-hint">Sign here</div>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-amber" data-enlarge-sig="operator:${i}" style="width:100%;">🔍 Enlarge to Sign</button>
+        <button class="btn-outline-sm" data-clear-op-sig="${i}" style="width:100%;">Clear</button>
+      </div>
+    </div>`;
+  }
+
+  function trainingStep(){
+    const cards = state.operators.map((op,i)=>operatorCardHtml(op,i)).join('');
+    return `
+    <div class="card">
+      <h2>Training Provided</h2>
+      <p class="sub">Record each operator trained, with topic, their photo and signature.</p>
+    </div>
+    ${cards}
+    <div class="card" style="text-align:center;">
+      <button class="btn btn-outline-sm" id="addOperator" style="width:100%;">+ Add another person</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue →</button>
+    </div>`;
+  }
+
+  // ---- Suggestions (installation) ----
+  function suggestionsStep(){
+    return `
+    <div class="card">
+      <h2>Suggestion to Factory</h2>
+      <p class="sub">Recommendations for the mill based on this installation.</p>
+      <textarea id="sugg_text" placeholder="e.g. Improve lighting near M-14, consider a dedicated LAN point…">${esc(state.suggestion)}</textarea>
+    </div>
+    <div class="card">
+      <h2>Maintenance Guide to Factory</h2>
+      <p class="sub">Guidance for the mill's team on upkeep.</p>
+      <textarea id="maint_text" placeholder="e.g. Clean camera lens weekly, check cabinet ventilation monthly…">${esc(state.maintenanceGuide)}</textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue →</button>
+    </div>`;
+  }
+
+  // ---- Report ----
+  function reportStep(){
+    return `
+    <div class="card no-print" style="text-align:center;">
+      <h2>Report Generated</h2>
+      <p class="sub">Review the compiled ${state.orderType==='installation'?'installation':'work'} order report below, then continue to sign-off.</p>
+    </div>
+    ${reportHtml(false)}
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue to Sign-Off →</button>
+    </div>`;
+  }
+
+  function signOffAndCsatBlock(final, hideSig){
+    if(!final) return '';
+    const sig = state.signOff, csat = state.csat;
+    const starsStatic = `<div class="stars-static">${'★'.repeat(csat.rating)}${'☆'.repeat(5-csat.rating)}</div>`;
+    const sigImg = (s) => hideSig
+      ? '<div style="height:70px;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:11px;font-style:italic;">Signature on file</div>'
+      : (s.sig ? `<img src="${s.sig}">` : '<div style="height:70px;"></div>');
+    return `
+    <h3>Sign-Off</h3>
+    <div class="sig-final">
+      <div class="who">
+        ${sigImg(sig.engineer)}
+        <div class="name">${esc(sig.engineer.name)||'—'}</div>
+        <div class="desig">${esc(sig.engineer.designation)||'Engineer'}</div>
+      </div>
+      <div class="who">
+        ${sigImg(sig.customer)}
+        <div class="name">${esc(sig.customer.name)||'—'}</div>
+        <div class="desig">${esc(sig.customer.designation)||'Customer'}</div>
+      </div>
+    </div>
+    <h3>Customer Satisfaction</h3>
+    <div class="csat-final">
+      ${starsStatic}
+      <p style="margin-top:6px;">${esc(csat.comment)||'<span style="color:var(--ink-soft);font-style:italic;">No comment provided</span>'}</p>
+    </div>`;
+  }
+
+  function imageCategoriesReport(m){
+    const blocks = machineImageCats(m).filter(([k])=>m.images[k] && m.images[k].length).map(([k,label])=>`
+      <p style="margin:10px 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);">${label}</p>
+      <div class="report-photo-grid">
+        ${m.images[k].map(p=>`<img src="${p}">`).join('')}
+      </div>`).join('');
+    return blocks || '<p style="color:var(--ink-soft);font-style:italic;">No installation photos recorded.</p>';
+  }
+
+  function machineReportBody(m){
+    return `
+    <table>
+      <tr><th style="width:35%;">Type of Machine</th><td>${esc(m.machineType)||'—'}</td></tr>
+      <tr><th>Knit-I Cabinet Serial No.</th><td>${esc(m.cabinetSerial)||'—'}</td></tr>
+      <tr><th>Tailscale IP</th><td>${esc(m.tailscaleIp)||'—'}</td></tr>
+      <tr><th>Cabinet Type</th><td>${esc(m.cabinetType)}</td></tr>
+      <tr><th>No. of Cameras</th><td>${esc(m.numCams)}</td></tr>
+      <tr><th>Knitting Machine Brand</th><td>${esc(m.kmBrand)||'—'}</td></tr>
+      <tr><th>Knitting Machine Model</th><td>${esc(m.kmModel)||'—'}</td></tr>
+      <tr><th>Knitting Machine Serial No.</th><td>${esc(m.kmSerial)||'—'}</td></tr>
+      <tr><th>Knitting Machine Name</th><td>${esc(m.kmName)||'—'}</td></tr>
+      <tr><th>Gauge / Diameter</th><td>${esc(m.kmGauge)||'—'} / ${esc(m.kmDiameter)||'—'}</td></tr>
+    </table>
+    <p style="margin-top:8px;"><b>Current program details:</b> ${esc(m.kmProgram)||'—'}</p>
+    ${imageCategoriesReport(m)}
+    <h4>Defect Testing</h4>
+    <table>
+      <tr><th>Defect</th><th>Captured</th><th>Roll No.</th><th>Rotation No.</th><th>Comments</th></tr>
+      ${m.defects.map(d=>`<tr><td>${esc(d.label)}</td><td>${d.captured==='yes'?'Yes':'No'}</td><td>${esc(d.rollNo)||'—'}</td><td>${esc(d.rotationNo)||'—'}</td><td>${esc(d.comment)||'—'}</td></tr>`).join('')}
+    </table>`;
+  }
+
+  function operatorsReportBlock(){
+    const rows = state.operators.filter(o=>o.name).map(o=>`
+      <div class="op-row">
+        ${o.photo ? `<img class="op-photo" src="${o.photo}">` : '<div class="op-photo" style="width:50px;height:50px;background:#F1F1EE;border-radius:6px;"></div>'}
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:13px;">${esc(o.name)}</div>
+          <div style="font-size:11.5px;color:var(--ink-soft);">${esc(o.topic)||'—'}</div>
+        </div>
+        ${o.sig ? `<img class="op-sig" src="${o.sig}">` : ''}
+      </div>`).join('');
+    return rows || '<p style="color:var(--ink-soft);font-style:italic;">No operators recorded.</p>';
+  }
+
+  function customerCopyBanner(customerCopy){
+    return customerCopy ? `<div style="background:var(--amber);color:#241505;text-align:center;font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px;border-radius:6px;margin-bottom:14px;">Customer Copy</div>` : '';
+  }
+
+  function installReportHtml(final, customerCopy){
+    const j = state.job;
+    const sr = state.siteReadiness;
+    return `
+    <div class="report">
+      ${customerCopyBanner(customerCopy)}
+      <h1>Machine Installation Order Report</h1>
+      <div class="rmeta">WO ${esc(j.wo)||'—'} · ${esc(j.startDate)||'—'} to ${esc(j.endDate)||'—'}</div>
+      <table>
+        <tr><th style="width:30%;">Customer</th><td>${esc(j.customer)||'—'}</td></tr>
+        <tr><th>Location</th><td>${esc(j.location)||'—'}</td></tr>
+        <tr><th>Engineer</th><td>${esc(j.engineer)||'—'}</td></tr>
+        <tr><th>Machine Count</th><td>${state.machineMode==='multiple'?'Multiple':'Single'} (${state.machines.length})</td></tr>
+      </table>
+
+      <h3>Site Readiness</h3>
+      <table>
+        <tr><th style="width:60%;">Power supply available and stable</th><td>${sr.power?'Yes':'No'}</td></tr>
+        <tr><th>Network / LAN point available</th><td>${sr.networkPoint?'Yes':'No'}</td></tr>
+        <tr><th>Mounting surface / bracket ready</th><td>${sr.mounting?'Yes':'No'}</td></tr>
+        <tr><th>Lighting conditions adequate</th><td>${sr.lighting?'Yes':'No'}</td></tr>
+      </table>
+      <p style="margin-top:8px;">${esc(sr.notes)||'—'}</p>
+
+      ${state.machines.map((m,i)=>`<h3>Machine ${i+1}${m.kmName?': '+esc(m.kmName):''}</h3>${machineReportBody(m)}`).join('')}
+
+      <h3>Training Provided</h3>
+      ${operatorsReportBlock()}
+
+      <h3>Suggestion to Factory</h3>
+      <p>${esc(state.suggestion)||'—'}</p>
+
+      <h3>Maintenance Guide to Factory</h3>
+      <p>${esc(state.maintenanceGuide)||'—'}</p>
+
+      ${signOffAndCsatBlock(final, customerCopy)}
+    </div>`;
+  }
+
+  function serviceReportHtml(final, customerCopy){
+    const j = state.job, b = state.before, a = state.after;
+    const tlog = state.troubleshoot.map(e=>`<div style="margin-bottom:6px;"><span style="font-family:var(--mono);color:var(--ink-soft);font-size:11px;">${e.time}</span> — ${esc(e.text)}</div>`).join('') || '<p style="color:var(--ink-soft);font-style:italic;">No troubleshooting notes logged.</p>';
+    const partsRows = state.parts.filter(p=>p.name||p.partNo||p.serialNo).map((p,i)=>`
+      <tr>
+        <td>${i+1}</td><td>${esc(p.name)}</td><td>${esc(p.partNo)}</td><td>${esc(p.serialNo)}</td><td>${esc(String(p.qty||1))}</td>
+        <td>${p.photo ? `<img src="${p.photo}" style="width:70px;height:70px;object-fit:cover;border-radius:4px;">` : '—'}</td>
+        <td>${esc(p.spec)||'—'}</td>
+      </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--ink-soft);">No parts recorded</td></tr>`;
+
+    return `
+    <div class="report">
+      ${customerCopyBanner(customerCopy)}
+      <h1>Field Service Work Order Report</h1>
+      <div class="rmeta">WO ${esc(j.wo)||'—'} · ${esc(j.date)}</div>
+      <table>
+        <tr><th style="width:30%;">Customer</th><td>${esc(j.customer)||'—'}</td></tr>
+        <tr><th>Location</th><td>${esc(j.location)||'—'}</td></tr>
+        <tr><th>Machine / Asset</th><td>${esc(j.machine)||'—'}</td></tr>
+        <tr><th>Engineer</th><td>${esc(j.engineer)||'—'}</td></tr>
+      </table>
+
+      <h3>Before / After</h3>
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:4px;">Before (${b.photos.length})</p>
+      <div class="report-photo-grid">${b.photos.length ? b.photos.map(p=>`<img src="${p}">`).join('') : `<div style="aspect-ratio:1/1;background:#F1F1EE;border-radius:6px;"></div>`}</div>
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin:14px 0 4px;">After (${a.photos.length})</p>
+      <div class="report-photo-grid">${a.photos.length ? a.photos.map(p=>`<img src="${p}">`).join('') : `<div style="aspect-ratio:1/1;background:#F1F1EE;border-radius:6px;"></div>`}</div>
+      <p style="margin-top:10px;"><b>Starting comments:</b> ${esc(b.comments)||'—'}</p>
+      <p><b>Completion comments:</b> ${esc(a.comments)||'—'}</p>
+
+      <h3>Troubleshooting Log</h3>
+      ${tlog}
+
+      <h3>Parts Used</h3>
+      <table>
+        <tr><th>#</th><th>Part Name</th><th>Part No.</th><th>Serial No.</th><th>Qty</th><th>Photo</th><th>Specification</th></tr>
+        ${partsRows}
+      </table>
+
+      ${signOffAndCsatBlock(final, customerCopy)}
+    </div>`;
+  }
+
+  function reportHtml(final, customerCopy){
+    return state.orderType==='installation' ? installReportHtml(final, customerCopy) : serviceReportHtml(final, customerCopy);
+  }
+
+  // ---- Sign-off ----
+  function signOffStep(){
+    const s = state.signOff;
+    return `
+    <div class="card">
+      <h2>Engineer Sign-Off</h2>
+      <p class="sub">Engineer confirms the work described above was carried out.</p>
+      <label class="field-label">Name</label>
+      <input type="text" id="eng_name" value="${esc(s.engineer.name)}" placeholder="Engineer full name">
+      <label class="field-label">Designation</label>
+      <input type="text" id="eng_desig" value="${esc(s.engineer.designation)}" placeholder="e.g. Field Service Engineer">
+      <label class="field-label">Signature</label>
+      <div class="sig-wrap ${s.engineer.sig?'sig-signed':''}" id="eng_sig_wrap">
+        <canvas class="sig-box" id="sig_engineer"></canvas>
+        <div class="sig-hint">Sign here</div>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-amber" data-enlarge-sig="engineer" style="width:100%;">🔍 Enlarge to Sign</button>
+        <button class="btn-outline-sm" id="clear_engineer" style="width:100%;">Clear</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Customer Sign-Off</h2>
+      <p class="sub">Customer confirms acceptance of the completed work. This preview can be read by the customer before signing.</p>
+      <label class="field-label">Name</label>
+      <input type="text" id="cust_name" value="${esc(s.customer.name)}" placeholder="Customer representative name">
+      <label class="field-label">Designation</label>
+      <input type="text" id="cust_desig" value="${esc(s.customer.designation)}" placeholder="e.g. Plant Manager">
+      <label class="field-label">Signature</label>
+      <div class="sig-wrap ${s.customer.sig?'sig-signed':''}" id="cust_sig_wrap">
+        <canvas class="sig-box" id="sig_customer"></canvas>
+        <div class="sig-hint">Sign here</div>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-amber" data-enlarge-sig="customer" style="width:100%;">🔍 Enlarge to Sign</button>
+        <button class="btn-outline-sm" id="clear_customer" style="width:100%;">Clear</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue to CSAT →</button>
+    </div>`;
+  }
+
+  function attachSigPad(canvasId, onSave, existingDataUrl, height){
+    height = height || 160;
+    const canvas = document.getElementById(canvasId);
+    if(!canvas) return;
+    const wrap = canvas.parentElement;
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = wrap.clientWidth * ratio;
+    canvas.height = height * ratio;
+    canvas.style.width = wrap.clientWidth+'px';
+    canvas.style.height = height+'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1B2229';
+    let drawing = false, last = null;
+    if(existingDataUrl){
+      const img = new Image();
+      img.onload = ()=>{ ctx.drawImage(img,0,0,wrap.clientWidth,height); };
+      img.src = existingDataUrl;
+    }
+    function pos(e){ const rect = canvas.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: t.clientX-rect.left, y: t.clientY-rect.top }; }
+    function start(e){ e.preventDefault(); drawing = true; last = pos(e); wrap.classList.add('sig-signed'); }
+    function move(e){ if(!drawing) return; e.preventDefault(); const p = pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last = p; }
+    function end(){ if(!drawing) return; drawing = false; onSave(canvas.toDataURL('image/png')); }
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    canvas.addEventListener('touchstart', start, {passive:false});
+    canvas.addEventListener('touchmove', move, {passive:false});
+    canvas.addEventListener('touchend', end);
+  }
+
+  function setupSignaturePads(){
+    attachSigPad('sig_engineer', (url)=>{ state.signOff.engineer.sig = url; }, state.signOff.engineer.sig);
+    attachSigPad('sig_customer', (url)=>{ state.signOff.customer.sig = url; }, state.signOff.customer.sig);
+  }
+  function setupOperatorSigPads(){
+    state.operators.forEach((op,i)=>{ attachSigPad('sig_operator_'+i, (url)=>{ state.operators[i].sig = url; }, op.sig); });
+  }
+
+  function closeSigModal(){
+    const el = document.getElementById('sigModalOverlay');
+    if(el) el.remove();
+  }
+
+  function openSigModal(target){
+    closeSigModal();
+    let existing = null;
+    if(target.type==='engineer') existing = state.signOff.engineer.sig;
+    else if(target.type==='customer') existing = state.signOff.customer.sig;
+    else if(target.type==='operator') existing = state.operators[target.opIdx].sig;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sigModalOverlay';
+    overlay.className = 'modal-backdrop';
+    overlay.innerHTML = `
+      <div class="modal-box" style="max-width:92vw;width:92vw;padding:16px;">
+        <h3 style="margin-bottom:10px;">Sign here</h3>
+        <div class="sig-wrap ${existing?'sig-signed':''}" id="sigModalWrap">
+          <canvas class="sig-box" id="sigModalCanvas" style="height:min(50vh,320px);"></canvas>
+          <div class="sig-hint">Sign here</div>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn btn-outline-sm" id="sigModalClear" style="width:100%;">Clear</button>
+          <button class="btn btn-primary" id="sigModalDone" style="width:100%;">Done</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const canvas = document.getElementById('sigModalCanvas');
+    const modalHeight = Math.min(window.innerHeight*0.5, 320);
+    canvas.dataset.sig = existing || '';
+    attachSigPad('sigModalCanvas', (url)=>{ canvas.dataset.sig = url; }, existing, modalHeight);
+
+    document.getElementById('sigModalClear').onclick = ()=>{
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      canvas.dataset.sig = '';
+      document.getElementById('sigModalWrap').classList.remove('sig-signed');
+    };
+    document.getElementById('sigModalDone').onclick = ()=>{
+      const finalSig = canvas.dataset.sig || null;
+      if(target.type==='engineer') state.signOff.engineer.sig = finalSig;
+      else if(target.type==='customer') state.signOff.customer.sig = finalSig;
+      else if(target.type==='operator') state.operators[target.opIdx].sig = finalSig;
+      closeSigModal();
+      render();
+    };
+  }
+
+  // ---- CSAT ----
+  function csatStep(){
+    const c = state.csat;
+    const labels = ['','Poor','Below average','Satisfactory','Good','Excellent'];
+    const stars = [1,2,3,4,5].map(n=>`<span class="star ${n<=c.rating?'on':''}" data-star="${n}">★</span>`).join('');
+    return `
+    <div class="card" style="text-align:center;">
+      <h2 style="text-align:left;">Customer Satisfaction</h2>
+      <p class="sub" style="text-align:left;">How would you rate the engineer's service today?</p>
+      <div class="stars">${stars}</div>
+      <div class="csat-label">${c.rating? labels[c.rating] : 'Tap a star to rate'}</div>
+      <label class="field-label" style="text-align:left;">Comments on engineer (optional)</label>
+      <textarea id="csat_comment" placeholder="Any feedback about the service or engineer…">${esc(c.comment)}</textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="backBtn">← Back</button>
+      <button class="btn btn-amber" id="nextBtn" ${c.rating? '' : 'disabled'}>Submit &amp; Complete Order →</button>
+    </div>`;
+  }
+
+  // ---- Done ----
+  function doneStep(){
+    const modal = state.showResetConfirm ? `
+      <div class="modal-backdrop no-print" id="resetBackdrop">
+        <div class="modal-box">
+          <h3>Start a new order?</h3>
+          <p>Current data will be cleared and can't be recovered.</p>
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn btn-ghost" id="cancelReset">Cancel</button>
+            <button class="btn btn-primary" id="confirmReset" style="background:var(--danger);">Clear &amp; Start New</button>
+          </div>
+        </div>
+      </div>` : '';
+    const submitStatusHtml = (()=>{
+      if(state.submitStatus==='success') return `<p class="sub" style="color:var(--success);margin-top:8px;">✅ Submitted to team server. Order ID: ${esc(state.submittedOrderId||'')}</p>`;
+      if(state.submitStatus==='queued') return `<p class="sub" style="color:var(--amber);margin-top:8px;">📶 No connection right now — saved on this device and will submit automatically once you're back online. You don't need to do anything else.</p>`;
+      if(state.submitStatus==='error') return `<p class="sub" style="color:var(--danger);margin-top:8px;">⚠️ ${esc(state.submitError||'Submission failed. Check the server URL and your connection.')}</p>`;
+      if(state.submitStatus==='submitting') return `<p class="sub" style="margin-top:8px;">Submitting…</p>`;
+      return '';
+    })();
+
+    return `
+    <div class="card no-print" style="text-align:center;">
+      <h2 style="text-align:center;">✅ Order Complete</h2>
+      <p class="sub">Signed off by both parties and rated by the customer.</p>
+      <div class="btn-row"><button class="btn btn-amber" id="downloadPdfFullBtn">⬇️ Download PDF (with signatures)</button></div>
+      <div class="btn-row"><button class="btn btn-outline-sm" id="downloadPdfCustomerBtn" style="width:100%;">⬇️ Download PDF — Customer Copy (no signatures)</button></div>
+      <p class="sub" style="margin-top:16px;margin-bottom:6px;">Having trouble with the PDF? Fall back to HTML + your browser's print dialog:</p>
+      <div class="btn-row"><button class="btn btn-ghost" id="downloadFullBtn" style="width:100%;">Download as HTML (with signatures)</button></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="downloadCustomerBtn" style="width:100%;">Download as HTML (Customer Copy)</button></div>
+    </div>
+
+    <div class="card no-print">
+      <h2>Team Server</h2>
+      <p class="sub">Submit this order to Supabase so other engineers and the office can see it.</p>
+      ${state.serverUrl && state.supabaseKey
+        ? `<p class="sub" style="margin:0 0 10px;font-family:var(--mono);font-size:11.5px;">${esc(state.serverUrl)}</p>`
+        : `<p class="sub" style="margin:0 0 10px;color:var(--danger);">Supabase URL / Anon Key not set — configure them in ⚙️ Settings on the first screen first.</p>`}
+      <div class="btn-row"><button class="btn btn-primary" id="submitServerBtn" ${state.submitStatus==='submitting'?'disabled':''}>☁️ ${state.submitStatus==='submitting'?'Submitting…':'Submit to Team Server'}</button></div>
+      ${submitStatusHtml}
+    </div>
+
+    <div class="card no-print" style="text-align:center;">
+      <div class="btn-row"><button class="btn btn-ghost" id="newWo">+ New Order</button></div>
+    </div>
+    ${reportHtml(true)}
+    ${modal}
+    `;
+  }
+
+  function standaloneReportDoc(customerCopy){
+    const styleTags = document.querySelector('style').outerHTML;
+    const body = reportHtml(true, customerCopy);
+    const fname = esc(state.job.wo) || 'work-order';
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${fname}</title>${styleTags}
+    <style>body{background:#fff;padding:20px;} .report{border:none;} @page{margin:14mm;}</style>
+    </head><body>${body}
+    <script>
+      window.onload = function(){ setTimeout(function(){ try{ window.print(); }catch(e){} }, 300); };
+      document.addEventListener('click', function(e){
+        var img = e.target.closest('.report img');
+        if(!img) return;
+        var overlay = document.createElement('div');
+        overlay.className = 'img-lightbox-backdrop';
+        var big = document.createElement('img');
+        big.src = img.src;
+        overlay.appendChild(big);
+        overlay.onclick = function(){ overlay.remove(); };
+        document.body.appendChild(overlay);
+      });
+    <\/script>
+    </body></html>`;
+  }
+
+  function downloadReport(customerCopy){
+    const html = standaloneReportDoc(customerCopy);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeWo = (state.job.wo || 'work-order').replace(/[^a-z0-9-_]/gi,'_');
+    a.href = url;
+    a.download = customerCopy ? `Order_${safeWo}_CustomerCopy.html` : `Order_${safeWo}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+    toast('Report downloaded — open the file, then use your browser\'s Print → Save as PDF');
+  }
+
+  // ================= Direct PDF generator (no browser print, no external libraries) =================
+  const PDF_SCALE = 2;
+  const PDF_PT_W = 595, PDF_PT_H = 842; // A4 in points
+  const PDF_PAGE_W = PDF_PT_W * PDF_SCALE, PDF_PAGE_H = PDF_PT_H * PDF_SCALE;
+  const PDF_MARGIN = 34 * PDF_SCALE;
+  const PDF_COL = { navy:'#16232E', steel:'#3D6B8C', ink:'#1B2229', soft:'#5B6570', line:'#D9DCD9', amber:'#D68A2D' };
+
+  function createPageManager(){
+    const pages = [];
+    const pm = { y: PDF_MARGIN, ctx: null };
+    pm.newPage = function(){
+      const canvas = document.createElement('canvas');
+      canvas.width = PDF_PAGE_W; canvas.height = PDF_PAGE_H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,PDF_PAGE_W,PDF_PAGE_H);
+      pages.push(canvas);
+      pm.ctx = ctx;
+      pm.y = PDF_MARGIN;
+    };
+    pm.ensureSpace = function(h){
+      if(pm.y + h > PDF_PAGE_H - PDF_MARGIN){ pm.newPage(); }
+    };
+    pm.pages = pages;
+    pm.newPage();
+    return pm;
+  }
+
+  function pdfWrapLines(ctx, str, font, maxWidth){
+    ctx.font = font;
+    const words = (str==null?'':String(str)).split(/\s+/).filter(w=>w.length);
+    const lines = [];
+    let line = '';
+    words.forEach(w=>{
+      const test = line ? line+' '+w : w;
+      if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = w; }
+      else { line = test; }
+    });
+    if(line) lines.push(line);
+    return lines.length ? lines : [''];
+  }
+
+  function pdfText(pm, str, x, opts){
+    opts = opts || {};
+    const size = (opts.size || 8.5) * PDF_SCALE;
+    const weight = opts.weight || '400';
+    const color = opts.color || PDF_COL.ink;
+    const maxWidth = opts.maxWidth || (PDF_PAGE_W - PDF_MARGIN - x);
+    const lineHeight = size * 1.4;
+    const font = `${weight} ${size}px Arial, Helvetica, sans-serif`;
+    const lines = pdfWrapLines(pm.ctx, str, font, maxWidth);
+    lines.forEach(l=>{
+      pm.ensureSpace(lineHeight);
+      pm.ctx.font = font;
+      pm.ctx.fillStyle = color;
+      pm.ctx.textBaseline = 'alphabetic';
+      pm.ctx.fillText(l, x, pm.y + size*0.85);
+      pm.y += lineHeight;
+    });
+    return pm.y;
+  }
+
+  function pdfMeasureWrapHeight(pm, str, font, maxWidth){
+    const lines = pdfWrapLines(pm.ctx, str, font, maxWidth);
+    const size = parseInt(font.match(/(\d+)px/)[1], 10);
+    return lines.length * size * 1.4;
+  }
+
+  function pdfSectionHeader(pm, title){
+    pm.ensureSpace(30*PDF_SCALE);
+    pm.y += 8*PDF_SCALE;
+    const size = 10*PDF_SCALE;
+    pm.ctx.font = `700 ${size}px Arial`;
+    pm.ctx.fillStyle = PDF_COL.steel;
+    pm.ctx.fillText(title.toUpperCase(), PDF_MARGIN, pm.y + size*0.85);
+    pm.y += size*1.3;
+    pm.ctx.strokeStyle = PDF_COL.line;
+    pm.ctx.lineWidth = 1;
+    pm.ctx.beginPath();
+    pm.ctx.moveTo(PDF_MARGIN, pm.y);
+    pm.ctx.lineTo(PDF_PAGE_W - PDF_MARGIN, pm.y);
+    pm.ctx.stroke();
+    pm.y += 8*PDF_SCALE;
+  }
+
+  function pdfBanner(pm, label){
+    const h = 26*PDF_SCALE;
+    pm.ensureSpace(h + 10*PDF_SCALE);
+    pm.ctx.fillStyle = PDF_COL.amber;
+    const w = PDF_PAGE_W - 2*PDF_MARGIN;
+    roundRect(pm.ctx, PDF_MARGIN, pm.y, w, h, 4*PDF_SCALE);
+    pm.ctx.fill();
+    pm.ctx.fillStyle = '#241505';
+    pm.ctx.font = `700 ${9*PDF_SCALE}px Arial`;
+    pm.ctx.textAlign = 'center';
+    pm.ctx.fillText(label.toUpperCase(), PDF_PAGE_W/2, pm.y + h/2 + 3*PDF_SCALE);
+    pm.ctx.textAlign = 'left';
+    pm.y += h + 10*PDF_SCALE;
+  }
+
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function pdfKvTable(pm, rows){
+    const labelW = 150*PDF_SCALE;
+    const valX = PDF_MARGIN + labelW + 10*PDF_SCALE;
+    const valW = PDF_PAGE_W - PDF_MARGIN - valX;
+    const labelFont = `700 ${8.5*PDF_SCALE}px Arial`;
+    const valFont = `400 ${8.5*PDF_SCALE}px Arial`;
+    rows.forEach(([label, value])=>{
+      const rowH = Math.max(pdfMeasureWrapHeight(pm, value, valFont, valW), 8.5*PDF_SCALE*1.4) + 6*PDF_SCALE;
+      pm.ensureSpace(rowH);
+      const rowTop = pm.y;
+      pm.ctx.font = labelFont;
+      pm.ctx.fillStyle = PDF_COL.soft;
+      pm.ctx.fillText(label, PDF_MARGIN, pm.y + 8.5*PDF_SCALE);
+      pm.y += 2*PDF_SCALE;
+      const savedY = pm.y;
+      pm.y = rowTop;
+      pdfText(pm, value, valX, {size:8.5, maxWidth:valW});
+      pm.y = Math.max(pm.y, savedY + 8.5*PDF_SCALE*1.4);
+      pm.ctx.strokeStyle = PDF_COL.line;
+      pm.ctx.lineWidth = 1;
+      pm.ctx.beginPath();
+      pm.ctx.moveTo(PDF_MARGIN, pm.y + 4*PDF_SCALE);
+      pm.ctx.lineTo(PDF_PAGE_W - PDF_MARGIN, pm.y + 4*PDF_SCALE);
+      pm.ctx.stroke();
+      pm.y += 10*PDF_SCALE;
+    });
+  }
+
+  function pdfImageGrid(pm, imgMap, urls, cols){
+    cols = cols || 4;
+    const gap = 8*PDF_SCALE;
+    const cellW = (PDF_PAGE_W - 2*PDF_MARGIN - gap*(cols-1)) / cols;
+    const cellH = cellW;
+    if(!urls || !urls.length){
+      pdfText(pm, 'No photos recorded.', PDF_MARGIN, {size:8, color:PDF_COL.soft});
+      return;
+    }
+    for(let r=0; r<Math.ceil(urls.length/cols); r++){
+      pm.ensureSpace(cellH + gap);
+      const rowY = pm.y;
+      for(let c=0;c<cols;c++){
+        const idx = r*cols+c;
+        if(idx>=urls.length) break;
+        const x = PDF_MARGIN + c*(cellW+gap);
+        const img = imgMap[urls[idx]];
+        pm.ctx.strokeStyle = PDF_COL.line;
+        pm.ctx.strokeRect(x, rowY, cellW, cellH);
+        if(img){
+          try{
+            const ratio = Math.max(cellW/img.width, cellH/img.height);
+            const dw = img.width*ratio, dh = img.height*ratio;
+            pm.ctx.save();
+            pm.ctx.beginPath();
+            pm.ctx.rect(x, rowY, cellW, cellH);
+            pm.ctx.clip();
+            pm.ctx.drawImage(img, x + (cellW-dw)/2, rowY + (cellH-dh)/2, dw, dh);
+            pm.ctx.restore();
+          }catch(e){}
+        }
+      }
+      pm.y = rowY + cellH + gap;
+    }
+  }
+
+  async function pdfCollectImageUrls(customerCopy){
+    const urls = [];
+    if(state.orderType==='installation'){
+      state.machines.forEach(m=>{ machineImageCats(m).forEach(([k])=>{ (m.images[k]||[]).forEach(u=>urls.push(u)); }); });
+      state.operators.forEach(o=>{ if(o.photo) urls.push(o.photo); if(o.sig && !customerCopy) urls.push(o.sig); });
+    } else {
+      state.before.photos.forEach(u=>urls.push(u));
+      state.after.photos.forEach(u=>urls.push(u));
+      state.parts.forEach(p=>{ if(p.photo) urls.push(p.photo); });
+    }
+    if(!customerCopy){
+      if(state.signOff.engineer.sig) urls.push(state.signOff.engineer.sig);
+      if(state.signOff.customer.sig) urls.push(state.signOff.customer.sig);
+    }
+    return urls;
+  }
+
+  function preloadImageMap(urls){
+    const map = {};
+    const unique = [...new Set(urls)];
+    return Promise.all(unique.map(u=>new Promise(res=>{
+      const img = new Image();
+      img.onload = ()=>{ map[u]=img; res(); };
+      img.onerror = ()=>{ res(); };
+      img.src = u;
+    }))).then(()=>map);
+  }
+
+  function pdfSigOrPlaceholder(pm, x, w, sigUrl, imgMap, hideSig){
+    const h = 32*PDF_SCALE;
+    if(hideSig || !sigUrl || !imgMap[sigUrl]){
+      pm.ctx.strokeStyle = PDF_COL.line;
+      pm.ctx.strokeRect(x, pm.y, w, h);
+      pm.ctx.fillStyle = PDF_COL.soft;
+      pm.ctx.font = `italic 400 ${7.5*PDF_SCALE}px Arial`;
+      pm.ctx.textAlign = 'center';
+      pm.ctx.fillText(hideSig ? 'Signature on file' : 'Not signed', x+w/2, pm.y+h/2+3*PDF_SCALE);
+      pm.ctx.textAlign = 'left';
+    } else {
+      const img = imgMap[sigUrl];
+      const ratio = Math.min(w/img.width, h/img.height);
+      const dw = img.width*ratio, dh = img.height*ratio;
+      pm.ctx.drawImage(img, x+(w-dw)/2, pm.y+(h-dh)/2, dw, dh);
+      pm.ctx.strokeStyle = PDF_COL.ink;
+      pm.ctx.beginPath();
+      pm.ctx.moveTo(x, pm.y+h);
+      pm.ctx.lineTo(x+w, pm.y+h);
+      pm.ctx.stroke();
+    }
+    return h;
+  }
+
+  function pdfSignOffAndCsat(pm, imgMap, hideSig){
+    pdfSectionHeader(pm, 'Sign-Off');
+    const colW = (PDF_PAGE_W - 2*PDF_MARGIN - 20*PDF_SCALE)/2;
+    pm.ensureSpace(32*PDF_SCALE + 30*PDF_SCALE);
+    const topY = pm.y;
+    const leftX = PDF_MARGIN, rightX = PDF_MARGIN + colW + 20*PDF_SCALE;
+    const sig = state.signOff;
+    const hL = pdfSigOrPlaceholder(pm, leftX, colW, sig.engineer.sig, imgMap, hideSig);
+    pm.y = topY;
+    pdfSigOrPlaceholder(pm, rightX, colW, sig.customer.sig, imgMap, hideSig);
+    pm.y = topY + hL + 6*PDF_SCALE;
+    pm.ctx.font = `700 ${8.5*PDF_SCALE}px Arial`;
+    pm.ctx.fillStyle = PDF_COL.ink;
+    pm.ctx.fillText(sig.engineer.name || '—', leftX, pm.y+8*PDF_SCALE);
+    pm.ctx.fillText(sig.customer.name || '—', rightX, pm.y+8*PDF_SCALE);
+    pm.y += 11*PDF_SCALE;
+    pm.ctx.font = `400 ${7.5*PDF_SCALE}px Arial`;
+    pm.ctx.fillStyle = PDF_COL.soft;
+    pm.ctx.fillText(sig.engineer.designation || 'Engineer', leftX, pm.y+8*PDF_SCALE);
+    pm.ctx.fillText(sig.customer.designation || 'Customer', rightX, pm.y+8*PDF_SCALE);
+    pm.y += 20*PDF_SCALE;
+
+    pdfSectionHeader(pm, 'Customer Satisfaction');
+    const csat = state.csat;
+    const stars = '★'.repeat(csat.rating) + '☆'.repeat(5-csat.rating);
+    pm.ensureSpace(16*PDF_SCALE);
+    pm.ctx.font = `400 ${16*PDF_SCALE}px Arial`;
+    pm.ctx.fillStyle = PDF_COL.amber;
+    pm.ctx.textAlign = 'center';
+    pm.ctx.fillText(stars, PDF_PAGE_W/2, pm.y+14*PDF_SCALE);
+    pm.ctx.textAlign = 'left';
+    pm.y += 22*PDF_SCALE;
+    pdfText(pm, csat.comment || 'No comment provided', PDF_MARGIN, {size:8, color: csat.comment?PDF_COL.ink:PDF_COL.soft});
+  }
+
+  function pdfDefectTable(pm, defects){
+    const cols = [
+      {label:'Defect', w:0.28}, {label:'Captured', w:0.13}, {label:'Roll No.', w:0.13},
+      {label:'Rotation No.', w:0.13}, {label:'Comments', w:0.33}
+    ];
+    const totalW = PDF_PAGE_W - 2*PDF_MARGIN;
+    let cx = PDF_MARGIN;
+    const colX = cols.map(c=>{ const x=cx; cx+=c.w*totalW; return x; });
+    pm.ensureSpace(14*PDF_SCALE);
+    pm.ctx.fillStyle = PDF_COL.steel; pm.ctx.fillRect(PDF_MARGIN, pm.y, totalW, 14*PDF_SCALE);
+    pm.ctx.font = `700 ${7*PDF_SCALE}px Arial`;
+    pm.ctx.fillStyle = '#fff';
+    cols.forEach((c,i)=>pm.ctx.fillText(c.label, colX[i]+4*PDF_SCALE, pm.y+10*PDF_SCALE));
+    pm.y += 14*PDF_SCALE;
+
+    defects.forEach(d=>{
+      const font = `400 ${7.5*PDF_SCALE}px Arial`;
+      const vals = [d.label, d.captured==='yes'?'Yes':'No', d.rollNo||'—', d.rotationNo||'—', d.comment||'—'];
+      const heights = vals.map((v,i)=>pdfMeasureWrapHeight(pm, v, font, cols[i].w*totalW - 8*PDF_SCALE));
+      const rowH = Math.max(...heights, 7.5*PDF_SCALE*1.4) + 6*PDF_SCALE;
+      pm.ensureSpace(rowH);
+      const rowTop = pm.y;
+      vals.forEach((v,i)=>{
+        const savedY = pm.y;
+        pm.y = rowTop;
+        pdfText(pm, v, colX[i]+4*PDF_SCALE, {size:7.5, maxWidth: cols[i].w*totalW-8*PDF_SCALE});
+        pm.y = Math.max(pm.y, savedY);
+      });
+      pm.y = rowTop + rowH;
+      pm.ctx.strokeStyle = PDF_COL.line;
+      pm.ctx.beginPath(); pm.ctx.moveTo(PDF_MARGIN, pm.y); pm.ctx.lineTo(PDF_PAGE_W-PDF_MARGIN, pm.y); pm.ctx.stroke();
+    });
+    pm.y += 8*PDF_SCALE;
+  }
+
+  function pdfOperators(pm, imgMap, hideSig){
+    const named = state.operators.filter(o=>o.name);
+    if(!named.length){ pdfText(pm, 'No operators recorded.', PDF_MARGIN, {size:8, color:PDF_COL.soft}); return; }
+    named.forEach(o=>{
+      const photoSize = 34*PDF_SCALE;
+      const rowH = photoSize + 6*PDF_SCALE;
+      pm.ensureSpace(rowH);
+      const rowTop = pm.y;
+      pm.ctx.strokeStyle = PDF_COL.line;
+      pm.ctx.strokeRect(PDF_MARGIN, rowTop, photoSize, photoSize);
+      const img = o.photo && imgMap[o.photo];
+      if(img){
+        const ratio = Math.max(photoSize/img.width, photoSize/img.height);
+        const dw=img.width*ratio, dh=img.height*ratio;
+        pm.ctx.save(); pm.ctx.beginPath(); pm.ctx.rect(PDF_MARGIN,rowTop,photoSize,photoSize); pm.ctx.clip();
+        pm.ctx.drawImage(img, PDF_MARGIN+(photoSize-dw)/2, rowTop+(photoSize-dh)/2, dw, dh);
+        pm.ctx.restore();
+      }
+      const textX = PDF_MARGIN + photoSize + 10*PDF_SCALE;
+      const sigW = 90*PDF_SCALE;
+      const textW = PDF_PAGE_W - PDF_MARGIN - sigW - 10*PDF_SCALE - textX;
+      pm.y = rowTop;
+      pm.ctx.font = `700 ${8.5*PDF_SCALE}px Arial`;
+      pm.ctx.fillStyle = PDF_COL.ink;
+      pm.ctx.fillText(o.name, textX, rowTop + 9*PDF_SCALE);
+      pm.y = rowTop + 13*PDF_SCALE;
+      pdfText(pm, o.topic || '—', textX, {size:7.5, color:PDF_COL.soft, maxWidth: textW});
+
+      const sigX = PDF_PAGE_W - PDF_MARGIN - sigW;
+      pm.y = rowTop;
+      pdfSigOrPlaceholder(pm, sigX, sigW, o.sig, imgMap, hideSig);
+
+      pm.y = rowTop + rowH;
+      pm.ctx.strokeStyle = PDF_COL.line;
+      pm.ctx.beginPath(); pm.ctx.moveTo(PDF_MARGIN, pm.y); pm.ctx.lineTo(PDF_PAGE_W-PDF_MARGIN, pm.y); pm.ctx.stroke();
+      pm.y += 8*PDF_SCALE;
+    });
+  }
+
+  function pdfMachineSection(pm, m, idx, imgMap){
+    pdfSectionHeader(pm, `Machine ${idx+1}${m.kmName ? ': '+m.kmName : ''}`);
+    pdfKvTable(pm, [
+      ['Type of Machine', m.machineType||'—'],
+      ['Knit-I Cabinet Serial No.', m.cabinetSerial||'—'],
+      ['Tailscale IP', m.tailscaleIp||'—'],
+      ['Cabinet Type', m.cabinetType||'—'],
+      ['No. of Cameras', m.numCams||'—'],
+      ['Knitting Machine Brand', m.kmBrand||'—'],
+      ['Knitting Machine Model', m.kmModel||'—'],
+      ['Knitting Machine Serial No.', m.kmSerial||'—'],
+      ['Knitting Machine Name', m.kmName||'—'],
+      ['Gauge / Diameter', `${m.kmGauge||'—'} / ${m.kmDiameter||'—'}`],
+      ['Current Program Details', m.kmProgram||'—']
+    ]);
+    machineImageCats(m).forEach(([k,label])=>{
+      const urls = m.images[k]||[];
+      if(!urls.length) return;
+      pm.ensureSpace(14*PDF_SCALE);
+      pm.ctx.font = `700 ${7.5*PDF_SCALE}px Arial`;
+      pm.ctx.fillStyle = PDF_COL.soft;
+      pm.ctx.fillText(label.toUpperCase(), PDF_MARGIN, pm.y+7*PDF_SCALE);
+      pm.y += 11*PDF_SCALE;
+      pdfImageGrid(pm, imgMap, urls, 4);
+    });
+    pm.ensureSpace(14*PDF_SCALE);
+    pm.y += 4*PDF_SCALE;
+    pm.ctx.font = `700 ${8.5*PDF_SCALE}px Arial`;
+    pm.ctx.fillStyle = PDF_COL.steel;
+    pm.ctx.fillText('DEFECT TESTING', PDF_MARGIN, pm.y+8*PDF_SCALE);
+    pm.y += 12*PDF_SCALE;
+    pdfDefectTable(pm, m.defects);
+  }
+
+  async function generatePdfBytes(customerCopy){
+    const urls = await pdfCollectImageUrls(customerCopy);
+    const imgMap = await preloadImageMap(urls);
+    const pm = createPageManager();
+    const isInstall = state.orderType==='installation';
+    const j = state.job;
+
+    if(customerCopy) pdfBanner(pm, 'Customer Copy');
+
+    pm.ctx.font = `700 ${15*PDF_SCALE}px Arial`;
+    pm.ctx.fillStyle = PDF_COL.ink;
+    pm.ctx.fillText(isInstall ? 'Machine Installation Order Report' : 'Field Service Work Order Report', PDF_MARGIN, pm.y+14*PDF_SCALE);
+    pm.y += 20*PDF_SCALE;
+    const meta = isInstall ? `WO ${j.wo||'—'} · ${j.startDate||'—'} to ${j.endDate||'—'}` : `WO ${j.wo||'—'} · ${j.date||'—'}`;
+    pm.ctx.font = `400 ${7.5*PDF_SCALE}px Arial`;
+    pm.ctx.fillStyle = PDF_COL.soft;
+    pm.ctx.fillText(meta, PDF_MARGIN, pm.y+7*PDF_SCALE);
+    pm.y += 18*PDF_SCALE;
+
+    if(isInstall){
+      pdfKvTable(pm, [
+        ['Customer', j.customer||'—'],
+        ['Location', j.location||'—'],
+        ['Engineer', j.engineer||'—'],
+        ['Machine Count', `${state.machineMode==='multiple'?'Multiple':'Single'} (${state.machines.length})`]
+      ]);
+      pdfSectionHeader(pm, 'Site Readiness');
+      const sr = state.siteReadiness;
+      pdfKvTable(pm, [
+        ['Power supply available and stable', sr.power?'Yes':'No'],
+        ['Network / LAN point available', sr.networkPoint?'Yes':'No'],
+        ['Mounting surface / bracket ready', sr.mounting?'Yes':'No'],
+        ['Lighting conditions adequate', sr.lighting?'Yes':'No'],
+        ['Notes', sr.notes||'—']
+      ]);
+      state.machines.forEach((m,i)=>pdfMachineSection(pm, m, i, imgMap));
+
+      pdfSectionHeader(pm, 'Training Provided');
+      pdfOperators(pm, imgMap, customerCopy);
+
+      pdfSectionHeader(pm, 'Suggestion to Factory');
+      pdfText(pm, state.suggestion || '—', PDF_MARGIN, {size:8.5});
+      pdfSectionHeader(pm, 'Maintenance Guide to Factory');
+      pdfText(pm, state.maintenanceGuide || '—', PDF_MARGIN, {size:8.5});
+    } else {
+      pdfKvTable(pm, [
+        ['Customer', j.customer||'—'],
+        ['Location', j.location||'—'],
+        ['Machine / Asset', j.machine||'—'],
+        ['Engineer', j.engineer||'—']
+      ]);
+      pdfSectionHeader(pm, 'Before');
+      pdfImageGrid(pm, imgMap, state.before.photos, 4);
+      pdfText(pm, state.before.comments||'—', PDF_MARGIN, {size:8.5});
+      pdfSectionHeader(pm, 'After');
+      pdfImageGrid(pm, imgMap, state.after.photos, 4);
+      pdfText(pm, state.after.comments||'—', PDF_MARGIN, {size:8.5});
+
+      pdfSectionHeader(pm, 'Troubleshooting Log');
+      if(state.troubleshoot.length){
+        state.troubleshoot.forEach(e=>pdfText(pm, `${e.time} — ${e.text}`, PDF_MARGIN, {size:8}));
+      } else {
+        pdfText(pm, 'No troubleshooting notes logged.', PDF_MARGIN, {size:8, color:PDF_COL.soft});
+      }
+
+      pdfSectionHeader(pm, 'Parts Used');
+      const parts = state.parts.filter(p=>p.name||p.partNo||p.serialNo);
+      if(parts.length){
+        parts.forEach((p,i)=>{
+          pdfKvTable(pm, [
+            [`Part ${i+1}`, p.name||'—'],
+            ['Part No. / Serial No.', `${p.partNo||'—'} / ${p.serialNo||'—'}`],
+            ['Qty', String(p.qty||1)],
+            ['Specification', p.spec||'—']
+          ]);
+          if(p.photo) pdfImageGrid(pm, imgMap, [p.photo], 4);
+        });
+      } else {
+        pdfText(pm, 'No parts recorded.', PDF_MARGIN, {size:8, color:PDF_COL.soft});
+      }
+    }
+
+    pdfSignOffAndCsat(pm, imgMap, customerCopy);
+
+    const jpegPages = pm.pages.map(canvas=>{
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const base64 = dataUrl.split(',')[1];
+      const binStr = atob(base64);
+      const bytes = new Uint8Array(binStr.length);
+      for(let i=0;i<binStr.length;i++) bytes[i] = binStr.charCodeAt(i);
+      return { bytes, width: canvas.width, height: canvas.height };
+    });
+    return buildMinimalPdf(jpegPages, PDF_PT_W, PDF_PT_H);
+  }
+
+  function buildMinimalPdf(pageImages, pageWidthPt, pageHeightPt){
+    const enc = new TextEncoder();
+    const parts = [];
+    let offset = 0;
+    const offsets = {};
+    function push(data){
+      const bytes = typeof data === 'string' ? enc.encode(data) : data;
+      parts.push(bytes);
+      offset += bytes.length;
+    }
+    function startObj(num){ offsets[num] = offset; push(`${num} 0 obj\n`); }
+    function endObj(){ push('endobj\n'); }
+
+    push('%PDF-1.4\n');
+
+    const numPages = pageImages.length;
+    const catalogNum = 1, pagesNum = 2;
+    const kids = [];
+    for(let i=0;i<numPages;i++){ kids.push(3+i*3); }
+
+    startObj(catalogNum);
+    push(`<< /Type /Catalog /Pages ${pagesNum} 0 R >>\n`);
+    endObj();
+
+    startObj(pagesNum);
+    push(`<< /Type /Pages /Kids [${kids.map(k=>k+' 0 R').join(' ')}] /Count ${numPages} >>\n`);
+    endObj();
+
+    for(let i=0;i<numPages;i++){
+      const pageObj = 3+i*3, imgObj = 4+i*3, contentObj = 5+i*3;
+      const img = pageImages[i];
+
+      startObj(pageObj);
+      push(`<< /Type /Page /Parent ${pagesNum} 0 R /MediaBox [0 0 ${pageWidthPt} ${pageHeightPt}] /Resources << /XObject << /Im0 ${imgObj} 0 R >> >> /Contents ${contentObj} 0 R >>\n`);
+      endObj();
+
+      startObj(imgObj);
+      push(`<< /Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.bytes.length} >>\nstream\n`);
+      push(img.bytes);
+      push('\nendstream\n');
+      endObj();
+
+      const contentStr = `q ${pageWidthPt} 0 0 ${pageHeightPt} 0 0 cm /Im0 Do Q`;
+      const contentBytes = enc.encode(contentStr);
+      startObj(contentObj);
+      push(`<< /Length ${contentBytes.length} >>\nstream\n`);
+      push(contentBytes);
+      push('\nendstream\n');
+      endObj();
+    }
+
+    const xrefOffset = offset;
+    const totalObjs = 2 + numPages*3;
+    push(`xref\n0 ${totalObjs+1}\n`);
+    push('0000000000 65535 f \n');
+    for(let n=1;n<=totalObjs;n++){
+      const off = offsets[n] || 0;
+      push(String(off).padStart(10,'0')+' 00000 n \n');
+    }
+    push(`trailer\n<< /Size ${totalObjs+1} /Root ${catalogNum} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+    const total = parts.reduce((s,p)=>s+p.length,0);
+    const result = new Uint8Array(total);
+    let pos=0;
+    for(const p of parts){ result.set(p,pos); pos+=p.length; }
+    return result;
+  }
+
+  async function downloadPdfDirect(customerCopy){
+    toast('Generating PDF…');
+    try{
+      const bytes = await generatePdfBytes(customerCopy);
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safeWo = (state.job.wo || 'work-order').replace(/[^a-z0-9-_]/gi,'_');
+      a.href = url;
+      a.download = customerCopy ? `Order_${safeWo}_CustomerCopy.pdf` : `Order_${safeWo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 3000);
+      toast('PDF downloaded');
+    }catch(err){
+      toast('PDF generation failed — try Download as HTML instead');
+    }
+  }
+  // ================= end direct PDF generator =================
+
+  // ---- Supabase Storage: upload each embedded photo as a real file, replacing
+  // the base64 data URL with the resulting public URL, so the database rows
+  // stay small and photos are served directly by Supabase's CDN. ----
+  async function uploadPhotoToSupabase(dataUrl, orderId, index, supabaseUrl, supabaseKey){
+    if(!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return dataUrl;
+    const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+    if(!match) return dataUrl;
+    const mime = match[1];
+    const ext = mime === 'jpeg' ? 'jpg' : mime;
+    const binStr = atob(match[2]);
+    const bytes = new Uint8Array(binStr.length);
+    for(let i=0;i<binStr.length;i++) bytes[i] = binStr.charCodeAt(i);
+    const path = `${orderId}/img_${String(index).padStart(4,'0')}.${ext}`;
+    const res = await fetch(`${supabaseUrl}/storage/v1/object/photos/${path}`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': `image/${mime}`
+      },
+      body: bytes
+    });
+    if(!res.ok) throw new Error('Photo upload failed (status ' + res.status + ')');
+    return `${supabaseUrl}/storage/v1/object/public/photos/${path}`;
+  }
+
+  async function uploadAllPhotos(payload, orderId, supabaseUrl, supabaseKey){
+    let counter = 0;
+    const next = () => counter++;
+    const uploadArray = async (arr) => {
+      if(!Array.isArray(arr)) return [];
+      const out = [];
+      for(const dataUrl of arr){ out.push(await uploadPhotoToSupabase(dataUrl, orderId, next(), supabaseUrl, supabaseKey)); }
+      return out;
+    };
+    const uploadSingle = async (dataUrl) => dataUrl ? uploadPhotoToSupabase(dataUrl, orderId, next(), supabaseUrl, supabaseKey) : dataUrl;
+
+    if(payload.before) payload.before.photos = await uploadArray(payload.before.photos);
+    if(payload.after) payload.after.photos = await uploadArray(payload.after.photos);
+    if(Array.isArray(payload.parts)){
+      for(const p of payload.parts){ if(p.photo) p.photo = await uploadSingle(p.photo); }
+    }
+    if(Array.isArray(payload.machines)){
+      for(const m of payload.machines){
+        if(m.images){ for(const k of Object.keys(m.images)){ m.images[k] = await uploadArray(m.images[k]); } }
+      }
+    }
+    if(Array.isArray(payload.operators)){
+      for(const o of payload.operators){
+        if(o.photo) o.photo = await uploadSingle(o.photo);
+        if(o.sig) o.sig = await uploadSingle(o.sig);
+      }
+    }
+    if(payload.signOff){
+      if(payload.signOff.engineer && payload.signOff.engineer.sig) payload.signOff.engineer.sig = await uploadSingle(payload.signOff.engineer.sig);
+      if(payload.signOff.customer && payload.signOff.customer.sig) payload.signOff.customer.sig = await uploadSingle(payload.signOff.customer.sig);
+    }
+    return payload;
+  }
+
+  // Does the actual work of getting one order into Supabase: upload photos,
+  // insert the row, and mark any linked assignment completed. Used both for a
+  // live submission and for retrying something that was queued while offline.
+  async function performSubmission(rawPayload, assignmentId, supabaseUrl, supabaseKey){
+    const orderId = crypto.randomUUID();
+    const payload = await uploadAllPhotos(JSON.parse(JSON.stringify(rawPayload)), orderId, supabaseUrl, supabaseKey);
+    delete payload.currentAssignmentId;
+    const machineCount = Array.isArray(payload.machines) ? payload.machines.length : 0;
+
+    const row = {
+      id: orderId,
+      order_type: payload.orderType || 'service',
+      wo_number: (payload.job && payload.job.wo) || '',
+      customer: (payload.job && payload.job.customer) || '',
+      location: (payload.job && payload.job.location) || '',
+      engineer: (payload.job && payload.job.engineer) || '',
+      machine_count: machineCount,
+      csat_rating: (payload.csat && payload.csat.rating) || 0,
+      data: payload
+    };
+
+    const res = await fetch(`${supabaseUrl}/rest/v1/orders`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(row)
+    });
+    if(!res.ok){ throw new Error('Supabase responded with status ' + res.status); }
+
+    if(assignmentId){
+      await fetch(`${supabaseUrl}/rest/v1/assignments?id=eq.${assignmentId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ status: 'completed', order_id: orderId })
+      });
+    }
+    return orderId;
+  }
+
+  async function submitToServer(){
+    const url = (state.serverUrl || '').trim().replace(/\/+$/,'');
+    const key = (state.supabaseKey || '').trim();
+    if(!url || !key){ toast('Enter the Supabase URL and Anon Key in Settings first'); return; }
+    state.serverUrl = url; state.supabaseKey = key;
+    storageSetSafe('settings:serverUrl', url);
+    storageSetSafe('settings:supabaseKey', key);
+    state.submitStatus = 'submitting';
+    render();
+
+    const payload = buildDraftSnapshot(false);
+    const assignmentId = state.currentAssignmentId || null;
+
+    try{
+      const orderId = await performSubmission(payload, assignmentId, url, key);
+      state.submitStatus = 'success';
+      state.submittedOrderId = orderId;
+    }catch(err){
+      // Could be a network failure (couldn't reach Supabase at all) or a real
+      // rejection. Either way, queue it so nothing is lost — retried automatically.
+      await enqueueSubmission(url, key, payload, assignmentId);
+      state.submitStatus = 'queued';
+    }
+    render();
+  }
+
+  function syncParts(){
+    document.querySelectorAll('[data-part]').forEach(inp=>{
+      const [field, idx] = inp.getAttribute('data-part').split(':');
+      state.parts[parseInt(idx)][field] = inp.value;
+    });
+  }
+
+  // ---------- Event binding ----------
+  function bindEvents(){
+    const key = currentKey();
+
+    if(key==='job'){
+      document.querySelectorAll('input[name="machineMode"]').forEach(r=>{
+        r.onchange = ()=>{ state.machineMode = r.value; render(); };
+      });
+      document.getElementById('nextBtn').onclick = ()=>{
+        const j = state.job;
+        j.wo = val('f_wo'); j.customer = val('f_customer'); j.location = val('f_location'); j.engineer = val('f_engineer');
+        if(state.orderType==='installation'){
+          j.startDate = val('f_start_date'); j.endDate = val('f_end_date');
+          const mmEl = document.querySelector('input[name="machineMode"]:checked');
+          state.machineMode = mmEl ? mmEl.value : 'single';
+          if(!j.customer){ toast('Add at least the customer name to continue'); return; }
+          if(state.machineMode==='multiple'){
+            let n = parseInt(val('f_num_machines'), 10);
+            if(!n || n<1) n = 2;
+            if(n>50) n = 50;
+            state.numMachines = n;
+            while(state.machines.length < n){
+              state.machines.forEach(m=>m.expanded=false);
+              state.machines.push(mkMachine());
+            }
+          } else {
+            state.numMachines = 1;
+          }
+        } else {
+          j.date = val('f_date'); j.machine = val('f_machine');
+          if(!j.customer || !j.machine){ toast('Add at least customer and machine to continue'); return; }
+        }
+        state.recent.customers = pushRecent(state.recent.customers, j.customer);
+        state.recent.locations = pushRecent(state.recent.locations, j.location);
+        state.recent.engineers = pushRecent(state.recent.engineers, j.engineer);
+        saveRecents();
+        goNext();
+      };
+    }
+
+    if(key==='before' || key==='after'){
+      const pkey = key;
+      const addInp = document.querySelector(`[data-photo-add="${pkey}"]`);
+      if(addInp) addInp.onchange = async (e)=>{
+        const files = Array.from(e.target.files || []);
+        for(const file of files){ const url = await fileToDataUrl(file); state[pkey].photos.push(url); }
+        render();
+      };
+      document.querySelectorAll(`[data-remove^="${pkey}:"]`).forEach(btn=>{
+        btn.onclick = (e)=>{ e.stopPropagation(); const idx = parseInt(btn.getAttribute('data-remove').split(':')[1]); state[pkey].photos.splice(idx,1); render(); };
+      });
+      document.getElementById('backBtn').onclick = ()=>{ state[pkey].comments = val('f_'+pkey+'_comments'); goBack(); };
+      document.getElementById('nextBtn').onclick = ()=>{ state[pkey].comments = val('f_'+pkey+'_comments'); goNext(); };
+    }
+
+    if(key==='troubleshoot'){
+      document.getElementById('addLog').onclick = ()=>{
+        const txt = val('f_log_new').trim();
+        if(!txt){ toast('Enter a note first'); return; }
+        state.troubleshoot.push({ time: fmtTime(new Date()), text: txt });
+        render();
+      };
+      document.querySelectorAll('[data-del-log]').forEach(btn=>{
+        btn.onclick = ()=>{ state.troubleshoot.splice(parseInt(btn.getAttribute('data-del-log')),1); render(); };
+      });
+      function capturePending(){ const txt = val('f_log_new').trim(); if(txt){ state.troubleshoot.push({ time: fmtTime(new Date()), text: txt }); } }
+      document.getElementById('backBtn').onclick = ()=>{ capturePending(); goBack(); };
+      document.getElementById('nextBtn').onclick = ()=>{ capturePending(); goNext(); };
+    }
+
+    if(key==='siteready'){
+      function save(){
+        const d = state.siteReadiness;
+        d.power = document.getElementById('sr_power').checked;
+        d.networkPoint = document.getElementById('sr_networkPoint').checked;
+        d.mounting = document.getElementById('sr_mounting').checked;
+        d.lighting = document.getElementById('sr_lighting').checked;
+        d.notes = val('sr_notes');
+      }
+      document.getElementById('backBtn').onclick = ()=>{ save(); goBack(); };
+      document.getElementById('nextBtn').onclick = ()=>{ save(); goNext(); };
+    }
+
+    if(key==='parts'){
+      document.querySelectorAll('[data-part]').forEach(inp=>{
+        inp.oninput = ()=>{ const [field, idx] = inp.getAttribute('data-part').split(':'); state.parts[parseInt(idx)][field] = inp.value; };
+      });
+      document.querySelectorAll('[data-part-photo]').forEach(inp=>{
+        inp.onchange = async (e)=>{
+          const idx = parseInt(inp.getAttribute('data-part-photo'));
+          const file = e.target.files[0]; if(!file) return;
+          const url = await fileToDataUrl(file);
+          state.parts[idx].photo = url;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-del-part]').forEach(btn=>{
+        btn.onclick = ()=>{ state.parts.splice(parseInt(btn.getAttribute('data-del-part')),1); render(); };
+      });
+      document.getElementById('addPart').onclick = ()=>{ state.parts.push(mkPart()); render(); };
+      document.getElementById('backBtn').onclick = ()=>{ syncParts(); goBack(); };
+      document.getElementById('nextBtn').onclick = ()=>{ syncParts(); goNext(); };
+    }
+
+    if(key==='machines'){
+      document.querySelectorAll('[data-toggle-machine]').forEach(el=>{
+        el.onclick = ()=>{ const idx = parseInt(el.getAttribute('data-toggle-machine')); state.machines[idx].expanded = !state.machines[idx].expanded; render(); };
+      });
+      document.querySelectorAll('[data-machine]').forEach(inp=>{
+        inp.oninput = ()=>{ const [f,idx] = inp.getAttribute('data-machine').split(':'); state.machines[parseInt(idx)][f] = inp.value; };
+      });
+      document.querySelectorAll('[data-machine-select]').forEach(sel=>{
+        sel.onchange = ()=>{ const [f,idx] = sel.getAttribute('data-machine-select').split(':'); state.machines[parseInt(idx)][f] = sel.value; render(); };
+      });
+      document.querySelectorAll('[data-mphoto-add]').forEach(inp=>{
+        inp.onchange = async (e)=>{
+          const [idx,cat] = inp.getAttribute('data-mphoto-add').split(':');
+          const files = Array.from(e.target.files || []);
+          for(const file of files){ const url = await fileToDataUrl(file); state.machines[parseInt(idx)].images[cat].push(url); }
+          render();
+        };
+      });
+      document.querySelectorAll('[data-mphoto-remove]').forEach(btn=>{
+        btn.onclick = (e)=>{
+          e.stopPropagation();
+          const [idx,cat,pi] = btn.getAttribute('data-mphoto-remove').split(':');
+          state.machines[parseInt(idx)].images[cat].splice(parseInt(pi),1);
+          render();
+        };
+      });
+      document.querySelectorAll('[data-defect]').forEach(el=>{
+        const handler = ()=>{
+          const [idx,di,field] = el.getAttribute('data-defect').split(':');
+          state.machines[parseInt(idx)].defects[parseInt(di)][field] = el.value;
+          if(el.tagName==='SELECT') render();
+        };
+        if(el.tagName==='SELECT') el.onchange = handler; else el.oninput = handler;
+      });
+      document.querySelectorAll('[data-defect-label]').forEach(inp=>{
+        inp.oninput = ()=>{ const [idx,di] = inp.getAttribute('data-defect-label').split(':'); state.machines[parseInt(idx)].defects[parseInt(di)].label = inp.value; };
+      });
+      document.querySelectorAll('[data-del-defect]').forEach(btn=>{
+        btn.onclick = ()=>{ const [idx,di] = btn.getAttribute('data-del-defect').split(':'); state.machines[parseInt(idx)].defects.splice(parseInt(di),1); render(); };
+      });
+      document.querySelectorAll('[data-add-defect]').forEach(btn=>{
+        btn.onclick = ()=>{ const idx = parseInt(btn.getAttribute('data-add-defect')); state.machines[idx].defects.push({label:'New defect', captured:'no', rollNo:'', rotationNo:'', comment:'', custom:true}); render(); };
+      });
+      document.querySelectorAll('[data-del-machine]').forEach(btn=>{
+        btn.onclick = (e)=>{ e.stopPropagation(); const idx = parseInt(btn.getAttribute('data-del-machine')); state.machines.splice(idx,1); render(); };
+      });
+      document.querySelectorAll('[data-dup-machine]').forEach(btn=>{
+        btn.onclick = (e)=>{ e.stopPropagation(); duplicateMachine(parseInt(btn.getAttribute('data-dup-machine'))); };
+      });
+      document.getElementById('addMachine').onclick = ()=>{
+        state.machines.forEach(m=>m.expanded=false);
+        state.machines.push(mkMachine());
+        render();
+      };
+      document.getElementById('backBtn').onclick = goBack;
+      document.getElementById('nextBtn').onclick = ()=>{
+        state.machines.forEach(m=>{ state.recent.kmBrands = pushRecent(state.recent.kmBrands, m.kmBrand); });
+        saveRecents();
+        goNext();
+      };
+    }
+
+    if(key==='training'){
+      document.querySelectorAll('[data-operator]').forEach(inp=>{
+        inp.oninput = ()=>{ const [f,idx] = inp.getAttribute('data-operator').split(':'); state.operators[parseInt(idx)][f] = inp.value; };
+      });
+      document.querySelectorAll('[data-op-photo-add]').forEach(inp=>{
+        inp.onchange = async (e)=>{
+          const idx = parseInt(inp.getAttribute('data-op-photo-add'));
+          const file = e.target.files[0]; if(!file) return;
+          const url = await fileToDataUrl(file);
+          state.operators[idx].photo = url;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-op-photo-remove]').forEach(btn=>{
+        btn.onclick = (e)=>{ e.stopPropagation(); const idx = parseInt(btn.getAttribute('data-op-photo-remove')); state.operators[idx].photo = null; render(); };
+      });
+      document.querySelectorAll('[data-del-operator]').forEach(btn=>{
+        btn.onclick = ()=>{ state.operators.splice(parseInt(btn.getAttribute('data-del-operator')),1); render(); };
+      });
+      document.getElementById('addOperator').onclick = ()=>{ state.operators.push(mkOperator()); render(); };
+      document.querySelectorAll('[data-enlarge-sig]').forEach(btn=>{
+        btn.onclick = ()=>{
+          const idx = parseInt(btn.getAttribute('data-enlarge-sig').split(':')[1]);
+          openSigModal({type:'operator', opIdx: idx});
+        };
+      });
+      document.querySelectorAll('[data-clear-op-sig]').forEach(btn=>{
+        btn.onclick = ()=>{
+          const idx = btn.getAttribute('data-clear-op-sig');
+          const canvas = document.getElementById('sig_operator_'+idx);
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0,0,canvas.width,canvas.height);
+          state.operators[parseInt(idx)].sig = null;
+          document.getElementById('op_sig_wrap_'+idx).classList.remove('sig-signed');
+        };
+      });
+      document.getElementById('backBtn').onclick = goBack;
+      document.getElementById('nextBtn').onclick = goNext;
+    }
+
+    if(key==='suggestions'){
+      document.getElementById('backBtn').onclick = ()=>{ state.suggestion = val('sugg_text'); state.maintenanceGuide = val('maint_text'); goBack(); };
+      document.getElementById('nextBtn').onclick = ()=>{ state.suggestion = val('sugg_text'); state.maintenanceGuide = val('maint_text'); goNext(); };
+    }
+
+    if(key==='report'){
+      document.getElementById('backBtn').onclick = goBack;
+      document.getElementById('nextBtn').onclick = goNext;
+    }
+
+    if(key==='signoff'){
+      document.getElementById('backBtn').onclick = goBack;
+      document.getElementById('nextBtn').onclick = ()=>{
+        state.signOff.engineer.name = val('eng_name');
+        state.signOff.engineer.designation = val('eng_desig');
+        state.signOff.customer.name = val('cust_name');
+        state.signOff.customer.designation = val('cust_desig');
+        if(!state.signOff.engineer.sig || !state.signOff.customer.sig){ toast('Both signatures are required'); return; }
+        if(!state.signOff.engineer.name || !state.signOff.customer.name){ toast('Enter both names'); return; }
+        goNext();
+      };
+      ['engineer','customer'].forEach(who=>{
+        const btn = document.getElementById('clear_'+who);
+        if(btn) btn.onclick = ()=>{
+          const canvas = document.getElementById('sig_'+who);
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0,0,canvas.width,canvas.height);
+          state.signOff[who].sig = null;
+          document.getElementById(who==='engineer'?'eng_sig_wrap':'cust_sig_wrap').classList.remove('sig-signed');
+        };
+      });
+      document.querySelectorAll('[data-enlarge-sig]').forEach(btn=>{
+        const target = btn.getAttribute('data-enlarge-sig');
+        if(target==='engineer' || target==='customer'){
+          btn.onclick = ()=>openSigModal({type: target});
+        }
+      });
+    }
+
+    if(key==='csat'){
+      document.querySelectorAll('[data-star]').forEach(star=>{
+        star.onclick = ()=>{ state.csat.rating = parseInt(star.getAttribute('data-star')); render(); };
+      });
+      document.getElementById('backBtn').onclick = goBack;
+      const nextBtn = document.getElementById('nextBtn');
+      if(nextBtn) nextBtn.onclick = ()=>{
+        state.csat.comment = val('csat_comment');
+        if(!state.csat.rating){ toast('Please rate the service'); return; }
+        goNext();
+        clearDraft();
+        toast('Order submitted');
+      };
+    }
+
+    if(key==='done'){
+      document.getElementById('downloadPdfFullBtn').onclick = ()=>downloadPdfDirect(false);
+      document.getElementById('downloadPdfCustomerBtn').onclick = ()=>downloadPdfDirect(true);
+      document.getElementById('downloadFullBtn').onclick = ()=>downloadReport(false);
+      document.getElementById('downloadCustomerBtn').onclick = ()=>downloadReport(true);
+      const submitBtn = document.getElementById('submitServerBtn');
+      if(submitBtn) submitBtn.onclick = ()=> submitToServer();
+      document.getElementById('newWo').onclick = ()=>{ state.showResetConfirm = true; render(); };
+      const cancelBtn = document.getElementById('cancelReset');
+      if(cancelBtn) cancelBtn.onclick = ()=>{ state.showResetConfirm = false; render(); };
+      const confirmBtn = document.getElementById('confirmReset');
+      if(confirmBtn) confirmBtn.onclick = ()=>{ resetState(); render(); };
+    }
+  }
+
+  function resetState(){
+    state.orderType = null;
+    state.step = 0;
+    state.machineMode = 'single';
+    state.numMachines = 2;
+    state.job = { wo:"", customer:"", location:"", machine:"", engineer:"", date:new Date().toISOString().slice(0,10), startDate:new Date().toISOString().slice(0,10), endDate:"" };
+    state.before = { photos:[], comments:"" };
+    state.troubleshoot = [];
+    state.parts = [ mkPart() ];
+    state.siteReadiness = { power:false, networkPoint:false, mounting:false, lighting:false, notes:"" };
+    state.machines = [ mkMachine() ];
+    state.operators = [ mkOperator() ];
+    state.suggestion = "";
+    state.maintenanceGuide = "";
+    state.after = { photos:[], comments:"" };
+    state.signOff = { engineer:{name:"",designation:"",sig:null}, customer:{name:"",designation:"",sig:null} };
+    state.csat = { rating:0, comment:"" };
+    state.showResetConfirm = false;
+    state.submitStatus = 'idle';
+    state.submitError = '';
+    state.submittedOrderId = '';
+    state.gateView = 'choose';
+    state.currentAssignmentId = null;
+    state.assignedList = [];
+    state.assignedError = '';
+    clearDraft();
+  }
+
+  document.addEventListener('click', function(e){
+    const img = e.target.closest('.report img');
+    if(!img) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'img-lightbox-backdrop';
+    const big = document.createElement('img');
+    big.src = img.src;
+    overlay.appendChild(big);
+    overlay.onclick = ()=>overlay.remove();
+    document.body.appendChild(overlay);
+  });
+
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden) saveDraft(); else flushSubmissionQueue(); });
+  window.addEventListener('pagehide', ()=>{ saveDraft(); });
+  window.addEventListener('online', ()=>{ toast('Back online — syncing…'); flushSubmissionQueue(); });
+  setInterval(saveDraft, 20000);
+  setInterval(flushSubmissionQueue, 30000);
+
+  (async function init(){
+    try{
+      const raw = await storageGetSafe('draft:order');
+      if(raw){ state.pendingDraft = JSON.parse(raw); }
+    }catch(e){}
+    await loadRecents();
+    const savedUrl = await storageGetSafe('settings:serverUrl');
+    if(savedUrl) state.serverUrl = savedUrl;
+    const savedKey = await storageGetSafe('settings:supabaseKey');
+    if(savedKey) state.supabaseKey = savedKey;
+    const savedName = await storageGetSafe('settings:myName');
+    if(savedName) state.myName = savedName;
+    flushSubmissionQueue();
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
