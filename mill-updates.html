@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knit-I — Mill-wise Updates</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --navy:#16232E; --navy-2:#1F3140; --steel:#3D6B8C; --steel-light:#DCE7ED; --amber:#D68A2D; --amber-dark:#B5701C;
+    --paper:#F6F5F1; --card:#FFFFFF; --line:#D9DCD9; --ink:#1B2229; --ink-soft:#5B6570; --success:#3D7A54; --danger:#B04A3D;
+    --mono:'SFMono-Regular',Consolas,monospace; --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+  header{background:var(--navy);color:#fff;padding:18px 24px;position:relative;}
+  header h1{margin:0;font-size:18px;}
+  header .sub{color:#B9C6CF;font-size:12.5px;margin-top:3px;}
+  header a.back{color:#DCE7ED;text-decoration:none;font-size:12.5px;}
+  header a.back:hover{text-decoration:underline;}
+  .wrap{max-width:1200px;margin:0 auto;padding:20px;}
+  .btn{padding:9px 16px;border:none;border-radius:7px;background:var(--navy);color:#fff;font-size:13px;cursor:pointer;font-weight:600;}
+  .btn.ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
+  .btn.amber{background:var(--amber-dark);}
+  .btn.danger{background:var(--danger);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  input,select,textarea{padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff;font-family:inherit;color:var(--ink);}
+  textarea{width:100%;resize:vertical;}
+  label.f{display:block;font-size:12px;font-weight:600;color:var(--ink);margin:10px 0 4px;}
+  label.f:first-child{margin-top:0;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .card + .card{margin-top:14px;}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .row.between{justify-content:space-between;}
+  .chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700;text-transform:uppercase;}
+  .chip.open{background:#FCEED4;color:#8A5A17;}
+  .chip.in_progress{background:#E4EEF3;color:var(--steel);}
+  .chip.done{background:#DCEFE1;color:#2C6B3F;}
+  .chip.low{background:#E9ECEC;color:#5B6570;}
+  .chip.normal{background:#E4EEF3;color:var(--steel);}
+  .chip.high{background:#FCEED4;color:#8A5A17;}
+  .chip.urgent{background:#F3DCDC;color:#8A2C2C;}
+  .chip.completed{background:#DCEFE1;color:#2C6B3F;}
+  .chip.scheduled{background:#E4EEF3;color:var(--steel);}
+  .chip.cancelled{background:#F3DCDC;color:#8A2C2C;}
+  .layout{display:grid;grid-template-columns:280px 1fr;gap:18px;margin-top:16px;align-items:start;}
+  @media (max-width:860px){ .layout{grid-template-columns:1fr;} .grid2{grid-template-columns:1fr;} }
+  .millList{list-style:none;margin:0;padding:0;max-height:65vh;overflow:auto;}
+  .millList li{padding:10px 12px;border-radius:7px;cursor:pointer;font-size:13.5px;margin-bottom:3px;border:1px solid transparent;}
+  .millList li:hover{background:var(--steel-light);}
+  .millList li.active{background:var(--navy);color:#fff;font-weight:600;}
+  .millList li .area{display:block;font-size:11px;color:var(--ink-soft);}
+  .millList li.active .area{color:#B9C6CF;}
+  .summaryGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px;}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;}
+  .stat b{display:block;font-size:20px;color:var(--navy);}
+  .stat span{font-size:10.5px;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.03em;}
+  .tabs{display:flex;gap:6px;margin:16px 0;flex-wrap:wrap;}
+  .tabBtn{padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-soft);}
+  .tabBtn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .entry{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#FCFCFB;}
+  .entry .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
+  .entry .title{font-weight:700;font-size:14px;}
+  .entry .meta{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .entry .desc{font-size:13px;margin-top:8px;white-space:pre-wrap;}
+  .entry .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .entry .imgs img{width:64px;height:64px;object-fit:cover;border-radius:5px;border:1px solid var(--line);cursor:zoom-in;}
+  .entry .actions{display:flex;gap:6px;margin-top:8px;}
+  .entry .actions button{font-size:11px;padding:5px 9px;}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid var(--line);}
+  th,td{padding:9px 11px;text-align:left;font-size:12.5px;border-bottom:1px solid var(--line);}
+  th{background:var(--steel-light);color:var(--navy);text-transform:uppercase;font-size:10px;letter-spacing:.04em;}
+  tr:last-child td{border-bottom:none;}
+  .empty{padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,14,18,.6);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 16px;z-index:150;}
+  .modal-overlay.show{display:flex;}
+  .modal-box{background:#fff;border-radius:10px;max-width:560px;width:100%;padding:22px;position:relative;}
+  .modal-box.wide{max-width:900px;}
+  .modal-box h2{margin-top:0;font-size:17px;}
+  .modal-box .closeBtn{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft);}
+  .thumbRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .thumbRow .thumb{position:relative;width:64px;height:64px;}
+  .thumbRow .thumb img{width:100%;height:100%;object-fit:cover;border-radius:5px;border:1px solid var(--line);}
+  .thumbRow .thumb .rm{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:300;cursor:zoom-out;}
+  .lightbox img{max-width:92%;max-height:92%;}
+  .sub{font-size:12.5px;color:var(--ink-soft);}
+  .err{color:var(--danger);font-size:12.5px;margin-top:8px;}
+  .searchBox{width:100%;margin-bottom:10px;}
+  #notSignedIn{max-width:480px;margin:80px auto;text-align:center;}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--steel);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .mapRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:6px;}
+  .progressBar{background:var(--line);border-radius:6px;height:8px;overflow:hidden;margin-top:8px;}
+  .progressBar > div{background:var(--steel);height:100%;}
+  @media print{
+    header,.no-print{display:none!important;}
+    body{background:#fff;}
+    .wrap{max-width:100%;padding:0;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Knit-I — Mill-wise Updates</h1>
+  <div class="sub"><a class="back" href="index.html">&larr; Back to Dashboard</a> &nbsp;•&nbsp; <span id="whoami"></span></div>
+</header>
+
+<div id="notSignedIn" style="display:none;">
+  <h2>Please sign in first</h2>
+  <p class="sub">This page shares your login with the main dashboard. Open the dashboard, sign in there, then come back here.</p>
+  <a class="btn" href="index.html">Go to Dashboard</a>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+
+  <div class="row between no-print">
+    <div class="row">
+      <button class="btn amber" id="btnAddMill">+ Add Mill</button>
+      <button class="btn ghost" id="btnImportExcel">⇪ Import from Excel</button>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="btnExportExcel">⬇ Export Excel</button>
+      <button class="btn ghost" id="btnExportPdf">🖨️ Export / Print PDF</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <input type="text" class="searchBox" id="millSearch" placeholder="Search mills...">
+      <ul class="millList" id="millList"></ul>
+    </div>
+
+    <div id="millDetail">
+      <div class="empty">Select a mill on the left, or add a new one, to get started.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Add / Edit Mill Modal ===== -->
+<div class="modal-overlay" id="millModal">
+  <div class="modal-box">
+    <button class="closeBtn" onclick="MU.closeModal('millModal')">&times;</button>
+    <h2 id="millModalTitle">Add Mill</h2>
+    <label class="f">Mill / Factory Name *</label>
+    <input type="text" id="mName" style="width:100%;" placeholder="e.g. Jay Jay Mills">
+    <div class="grid2">
+      <div><label class="f">Area</label><input type="text" id="mArea" style="width:100%;" placeholder="e.g. Tirupur"></div>
+      <div><label class="f">Contact Phone</label><input type="text" id="mPhone" style="width:100%;"></div>
+    </div>
+    <label class="f">Address</label>
+    <input type="text" id="mAddress" style="width:100%;">
+    <label class="f">Contact Person</label>
+    <input type="text" id="mContact" style="width:100%;">
+    <label class="f">Also known as (comma-separated — helps match this mill's existing Work Orders if the name was typed differently)</label>
+    <input type="text" id="mAliases" style="width:100%;" placeholder="e.g. JJ Mills, Jay Jay Textiles">
+    <div class="err" id="mErr"></div>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" id="mSaveBtn">Save Mill</button>
+      <button class="btn ghost" onclick="MU.closeModal('millModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Add / Edit Machine Modal ===== -->
+<div class="modal-overlay" id="machineModal">
+  <div class="modal-box">
+    <button class="closeBtn" onclick="MU.closeModal('machineModal')">&times;</button>
+    <h2 id="machineModalTitle">Add Machine</h2>
+    <div class="grid2">
+      <div><label class="f">Machine No / Tag *</label><input type="text" id="knNo" style="width:100%;" placeholder="e.g. KM-04"></div>
+      <div><label class="f">Machine Type</label><input type="text" id="knType" style="width:100%;" placeholder="e.g. Single Jersey"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">Brand</label><input type="text" id="knBrand" style="width:100%;"></div>
+      <div><label class="f">Model</label><input type="text" id="knModel" style="width:100%;"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">Serial No</label><input type="text" id="knSerial" style="width:100%;"></div>
+      <div><label class="f">Install Date</label><input type="date" id="knInstall" style="width:100%;"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">Gauge</label><input type="text" id="knGauge" style="width:100%;"></div>
+      <div><label class="f">Diameter</label><input type="text" id="knDia" style="width:100%;"></div>
+    </div>
+    <label class="f">Notes</label>
+    <textarea id="knNotes" rows="2"></textarea>
+    <div class="err" id="knErr"></div>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" id="knSaveBtn">Save Machine</button>
+      <button class="btn ghost" onclick="MU.closeModal('machineModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Add Entry Modal (to-do / pain point / suggestion / requirement / visit log) ===== -->
+<div class="modal-overlay" id="entryModal">
+  <div class="modal-box">
+    <button class="closeBtn" onclick="MU.closeModal('entryModal')">&times;</button>
+    <h2 id="entryModalTitle">Add Entry</h2>
+    <label class="f">Machine (optional — leave blank for a mill-wide item)</label>
+    <select id="eMachine" style="width:100%;"></select>
+    <label class="f">Title</label>
+    <input type="text" id="eTitle" style="width:100%;" placeholder="Short summary">
+    <label class="f">Details</label>
+    <textarea id="eDesc" rows="3" placeholder="Full description..."></textarea>
+    <div class="grid2" id="ePriorityRow">
+      <div><label class="f">Priority</label>
+        <select id="ePriority" style="width:100%;">
+          <option value="low">Low</option>
+          <option value="normal" selected>Normal</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
+      <div id="eStatusWrap"><label class="f">Status</label>
+        <select id="eStatus" style="width:100%;">
+          <option value="open" selected>Open</option>
+          <option value="in_progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+    </div>
+    <div id="eVisitDateWrap" style="display:none;">
+      <label class="f">Visit Date</label>
+      <input type="date" id="eVisitDate" style="width:100%;">
+    </div>
+    <label class="f">Photos</label>
+    <input type="file" id="eImages" accept="image/*" multiple capture="environment">
+    <div class="thumbRow" id="eThumbs"></div>
+    <div class="err" id="eErr"></div>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" id="eSaveBtn">Save</button>
+      <button class="btn ghost" onclick="MU.closeModal('entryModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Import Excel Modal ===== -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-box wide">
+    <button class="closeBtn" onclick="MU.closeModal('importModal')">&times;</button>
+    <h2>Import Mills &amp; Machines from Excel</h2>
+    <p class="sub">Upload a workbook with one row per machine (or per mill, if you just want the mill list). We'll try to guess which column is which — check the mapping below before importing.</p>
+    <input type="file" id="importFile" accept=".xlsx,.xls,.csv">
+    <div id="importPreviewWrap" style="display:none;margin-top:14px;">
+      <div class="grid2" id="importMapGrid" style="grid-template-columns:repeat(3,1fr);"></div>
+      <div style="overflow:auto;max-height:260px;margin-top:12px;border:1px solid var(--line);border-radius:8px;">
+        <table id="importPreviewTable"></table>
+      </div>
+      <p class="sub" id="importCount" style="margin-top:8px;"></p>
+      <div class="progressBar" id="importProgressWrap" style="display:none;"><div id="importProgressBar" style="width:0%;"></div></div>
+      <div class="err" id="importErr"></div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn" id="importGoBtn">Import Rows</button>
+        <button class="btn ghost" onclick="MU.closeModal('importModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="lightboxWrap"></div>
+
+<script>
+(function(){
+
+// ============================================================
+// Session — shared with index.html via the same localStorage keys.
+// No login form here on purpose: sign in from the main dashboard once,
+// then this page and index.html both read the same session.
+// ============================================================
+const DEFAULT_SUPABASE_URL = 'https://ipvgfjkyykhozomwwrfj.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwdmdmamt5eWtob3pvbXd3cmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjEwNzksImV4cCI6MjA5OTQ5NzA3OX0.wcRicTYWzDI7X381GNirTUcPHTq4lfQSqeVeH5u5GyE';
+const SUPA_URL = localStorage.getItem('settings:serverUrl') || DEFAULT_SUPABASE_URL;
+const SUPA_KEY = localStorage.getItem('settings:supabaseKey') || DEFAULT_SUPABASE_KEY;
+let AUTH_TOKEN = localStorage.getItem('session:authToken') || '';
+const REFRESH_TOKEN = localStorage.getItem('session:refreshToken') || '';
+const ME = {
+  id: localStorage.getItem('session:userId') || '',
+  email: localStorage.getItem('session:userEmail') || '',
+  name: localStorage.getItem('session:userProfileName') || '',
+  role: localStorage.getItem('session:userRole') || ''
+};
+
+function supaHeaders(extra){
+  return Object.assign({ 'apikey': SUPA_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' }, extra || {});
+}
+
+async function ensureFreshToken(){
+  try{
+    const part = AUTH_TOKEN.split('.')[1];
+    const payload = JSON.parse(atob(part.replace(/-/g,'+').replace(/_/g,'/')));
+    if(!payload.exp || (payload.exp*1000) > (Date.now()+120000)) return true;
+  }catch(e){ return true; }
+  try{
+    const res = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method:'POST', headers:{ 'apikey':SUPA_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ refresh_token: REFRESH_TOKEN })
+    });
+    const data = await res.json();
+    if(res.ok && data.access_token){
+      AUTH_TOKEN = data.access_token;
+      localStorage.setItem('session:authToken', AUTH_TOKEN);
+      if(data.refresh_token) localStorage.setItem('session:refreshToken', data.refresh_token);
+    }
+  }catch(e){}
+  return true;
+}
+
+if(!SUPA_URL || !SUPA_KEY || !AUTH_TOKEN || !ME.id){
+  document.getElementById('notSignedIn').style.display = '';
+} else {
+  document.getElementById('app').style.display = '';
+  document.getElementById('whoami').textContent = `${ME.name} (${ME.role})`;
+  boot();
+}
+
+// ============================================================
+// State
+// ============================================================
+const MU = window.MU = {
+  mills: [], machines: [], updates: [], orders: [], assignments: [],
+  currentMillId: null, currentTab: 'todo',
+  pendingImages: [], // {dataUrl, file} staged in the entry modal before upload
+  editingEntryId: null, editingMillId: null, editingMachineId: null,
+  closeModal(id){ document.getElementById(id).classList.remove('show'); }
+};
+
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(s){ if(!s) return '—'; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}); }
+function normName(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+const CATEGORY_LABELS = {
+  todo: 'To-Dos', pain_point: 'Customer Pain Points', suggestion: 'Engineer Suggestions',
+  requirement: 'Customer Requirements', visit_log: 'Visit Logs & Reports'
+};
+const TABS = ['todo','pain_point','suggestion','requirement','visit_log','work_orders','machines'];
+const TAB_LABELS = Object.assign({}, CATEGORY_LABELS, { work_orders: 'Work Orders', machines: 'Machines' });
+
+// ============================================================
+// Boot
+// ============================================================
+async function boot(){
+  await ensureFreshToken();
+  await Promise.all([loadMills(), loadMachines(), loadUpdates(), loadOrders(), loadAssignments()]);
+  renderMillList();
+  wireGlobalButtons();
+}
+
+async function loadMills(){
+  const res = await fetch(`${SUPA_URL}/rest/v1/mills?select=*&order=name.asc`, { headers: supaHeaders() });
+  MU.mills = res.ok ? await res.json() : [];
+}
+async function loadMachines(){
+  const res = await fetch(`${SUPA_URL}/rest/v1/machines?select=*&order=machine_no.asc`, { headers: supaHeaders() });
+  MU.machines = res.ok ? await res.json() : [];
+}
+async function loadUpdates(){
+  const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates?select=*&order=created_at.desc`, { headers: supaHeaders() });
+  MU.updates = res.ok ? await res.json() : [];
+}
+async function loadOrders(){
+  const res = await fetch(`${SUPA_URL}/rest/v1/orders?select=id,order_type,wo_number,customer,location,engineer,machine_count,csat_rating,created_at`, { headers: supaHeaders() });
+  MU.orders = res.ok ? await res.json() : [];
+}
+async function loadAssignments(){
+  const res = await fetch(`${SUPA_URL}/rest/v1/assignments?select=id,order_type,engineer,customer,location,scheduled_date,notes,status,created_at`, { headers: supaHeaders() });
+  MU.assignments = res.ok ? await res.json() : [];
+}
+
+// ============================================================
+// Mill <-> Work Order matching (orders/assignments store customer as free
+// text, so match by name or by the mill's alias list; substring fallback
+// catches things like "Jay Jay Mills" vs alias "Jay Jay")
+// ============================================================
+function millMatchesText(mill, text){
+  const t = normName(text);
+  if(!t) return false;
+  const candidates = [mill.name, ...(mill.aliases||[])].map(normName).filter(Boolean);
+  return candidates.some(c => c === t || t.includes(c) || c.includes(t));
+}
+function ordersForMill(mill){ return MU.orders.filter(o => millMatchesText(mill, o.customer)); }
+function assignmentsForMill(mill){ return MU.assignments.filter(a => millMatchesText(mill, a.customer)); }
+
+// ============================================================
+// Mill list (left panel)
+// ============================================================
+function renderMillList(){
+  const q = normName(document.getElementById('millSearch').value);
+  const ul = document.getElementById('millList');
+  const list = MU.mills.filter(m => !q || normName(m.name).includes(q) || normName(m.area||'').includes(q));
+  if(!list.length){ ul.innerHTML = `<div class="empty">No mills yet. Click "+ Add Mill" to create one.</div>`; return; }
+  ul.innerHTML = list.map(m => `
+    <li class="${m.id===MU.currentMillId?'active':''}" onclick="MU.selectMill('${m.id}')">
+      ${esc(m.name)}
+      <span class="area">${esc(m.area||'')}</span>
+    </li>`).join('');
+}
+document.getElementById('millSearch').addEventListener('input', renderMillList);
+
+MU.selectMill = function(id){
+  MU.currentMillId = id;
+  MU.currentTab = 'todo';
+  renderMillList();
+  renderMillDetail();
+};
+
+// ============================================================
+// Mill detail (right panel): summary + tabs
+// ============================================================
+function renderMillDetail(){
+  const mill = MU.mills.find(m => m.id === MU.currentMillId);
+  const box = document.getElementById('millDetail');
+  if(!mill){ box.innerHTML = `<div class="empty">Select a mill on the left, or add a new one, to get started.</div>`; return; }
+
+  const machines = MU.machines.filter(x => x.mill_id === mill.id);
+  const orders = ordersForMill(mill);
+  const assignments = assignmentsForMill(mill);
+  const pending = assignments.filter(a => a.status === 'scheduled' || a.status === 'in_progress').length;
+  const completed = orders.length + assignments.filter(a=>a.status==='completed').length;
+  const csats = orders.map(o=>o.csat_rating).filter(n=>n>0);
+  const avgCsat = csats.length ? (csats.reduce((a,b)=>a+b,0)/csats.length).toFixed(1) : '—';
+  const lastDates = [...orders.map(o=>o.created_at), ...assignments.map(a=>a.scheduled_date)].filter(Boolean).sort().reverse();
+  const openTodos = MU.updates.filter(u=>u.mill_id===mill.id && u.category==='todo' && u.status!=='done').length;
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="row between">
+        <h2 style="margin:0;">${esc(mill.name)}</h2>
+        <div class="row no-print">
+          <button class="btn ghost" onclick="MU.openMillModal('${mill.id}')">Edit Mill</button>
+        </div>
+      </div>
+      <p class="sub" style="margin:6px 0 0;">${esc(mill.area||'—')} ${mill.address?(' • '+esc(mill.address)):''}${mill.contact_name?(' • Contact: '+esc(mill.contact_name)+(mill.contact_phone?' ('+esc(mill.contact_phone)+')':'')):''}</p>
+      <div class="summaryGrid">
+        <div class="stat"><b>${machines.length}</b><span>Machines</span></div>
+        <div class="stat"><b>${orders.length}</b><span>Completed WOs</span></div>
+        <div class="stat"><b>${pending}</b><span>Pending / Assigned</span></div>
+        <div class="stat"><b>${avgCsat}</b><span>Avg CSAT</span></div>
+        <div class="stat"><b>${lastDates[0]?fmtDate(lastDates[0]):'—'}</b><span>Last Visit</span></div>
+        <div class="stat"><b>${openTodos}</b><span>Open To-Dos</span></div>
+      </div>
+    </div>
+
+    <div class="tabs no-print">
+      ${TABS.map(t => `<button class="tabBtn ${MU.currentTab===t?'active':''}" onclick="MU.switchTab('${t}')">${TAB_LABELS[t]}</button>`).join('')}
+    </div>
+
+    <div id="tabContent"></div>
+  `;
+  renderTabContent();
+}
+
+MU.switchTab = function(t){ MU.currentTab = t; renderMillDetail(); };
+
+function renderTabContent(){
+  const mill = MU.mills.find(m => m.id === MU.currentMillId);
+  const el = document.getElementById('tabContent');
+  if(!el || !mill) return;
+  if(MU.currentTab === 'work_orders'){ el.innerHTML = renderWorkOrdersTab(mill); return; }
+  if(MU.currentTab === 'machines'){ el.innerHTML = renderMachinesTab(mill); return; }
+  el.innerHTML = renderEntriesTab(mill, MU.currentTab);
+}
+
+function machineName(id){
+  if(!id) return 'Whole mill';
+  const m = MU.machines.find(x=>x.id===id);
+  return m ? (m.machine_no + (m.machine_type?' — '+m.machine_type:'')) : 'Whole mill';
+}
+
+function renderEntriesTab(mill, category){
+  const machines = MU.machines.filter(x=>x.mill_id===mill.id);
+  const entries = MU.updates.filter(u=>u.mill_id===mill.id && u.category===category);
+  const machineFilterHtml = `
+    <select id="entryMachineFilter" onchange="MU.filterEntries(this.value)" style="margin-bottom:12px;">
+      <option value="">All machines / mill-wide</option>
+      ${machines.map(m=>`<option value="${m.id}">${esc(m.machine_no)}</option>`).join('')}
+    </select>`;
+  const filterVal = window.__entryFilter || '';
+  const filtered = filterVal ? entries.filter(e=>e.machine_id===filterVal) : entries;
+  const list = filtered.length ? filtered.map(renderEntryCard).join('') : `<div class="empty">Nothing logged yet under ${esc(CATEGORY_LABELS[category])}.</div>`;
+  return `
+    <div class="row between no-print">
+      ${machineFilterHtml}
+      <button class="btn" onclick="MU.openEntryModal('${category}')">+ Add ${esc(CATEGORY_LABELS[category].replace(/s$/,''))}</button>
+    </div>
+    ${list}
+  `;
+}
+MU.filterEntries = function(v){ window.__entryFilter = v; renderTabContent(); };
+
+function renderEntryCard(e){
+  const canEdit = e.created_by === ME.id || ME.role === 'admin' || ME.role === 'coordinator';
+  const showStatus = e.category === 'todo';
+  const showPriority = e.category === 'todo' || e.category === 'pain_point';
+  return `
+    <div class="entry">
+      <div class="top">
+        <div>
+          <div class="title">${esc(e.title || '(untitled)')}</div>
+          <div class="meta">${esc(machineName(e.machine_id))} • ${e.category==='visit_log'&&e.visit_date?fmtDate(e.visit_date):fmtDate(e.created_at)} • ${esc(e.created_by_name||'Unknown')}</div>
+        </div>
+        <div class="row" style="gap:6px;">
+          ${showPriority?`<span class="chip ${e.priority}">${e.priority}</span>`:''}
+          ${showStatus?`<span class="chip ${e.status}">${e.status.replace('_',' ')}</span>`:''}
+        </div>
+      </div>
+      ${e.description ? `<div class="desc">${esc(e.description)}</div>` : ''}
+      ${(e.images||[]).length ? `<div class="imgs">${e.images.map(u=>`<img src="${u}" onclick="MU.showLightbox('${u}')">`).join('')}</div>` : ''}
+      <div class="actions no-print">
+        ${showStatus && canEdit ? `<button class="btn ghost" onclick="MU.cycleStatus('${e.id}')">Mark ${e.status==='open'?'In Progress':e.status==='in_progress'?'Done':'Open'}</button>` : ''}
+        ${canEdit ? `<button class="btn ghost" onclick="MU.deleteEntry('${e.id}')">Delete</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+MU.showLightbox = function(url){
+  const w = document.getElementById('lightboxWrap');
+  w.innerHTML = `<div class="lightbox" onclick="this.remove()"><img src="${url}"></div>`;
+};
+
+MU.cycleStatus = async function(id){
+  const e = MU.updates.find(x=>x.id===id);
+  if(!e) return;
+  const next = e.status === 'open' ? 'in_progress' : e.status === 'in_progress' ? 'done' : 'open';
+  const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates?id=eq.${id}`, {
+    method:'PATCH', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify({status:next})
+  });
+  if(res.ok){ e.status = next; renderTabContent(); }
+  else alert('Could not update status — you may not have permission to edit this entry.');
+};
+
+MU.deleteEntry = async function(id){
+  if(!confirm('Delete this entry?')) return;
+  const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates?id=eq.${id}`, { method:'DELETE', headers: supaHeaders() });
+  if(res.ok){ MU.updates = MU.updates.filter(x=>x.id!==id); renderTabContent(); }
+  else alert('Could not delete — you may not have permission.');
+};
+
+// ============================================================
+// Work Orders tab (read-only view of existing orders/assignments)
+// ============================================================
+function renderWorkOrdersTab(mill){
+  const orders = ordersForMill(mill).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const assignments = assignmentsForMill(mill).sort((a,b)=>new Date(b.scheduled_date||0)-new Date(a.scheduled_date||0));
+  return `
+    <div class="card">
+      <h3 style="margin-top:0;">Completed Work Orders (${orders.length})</h3>
+      ${orders.length ? `<table><thead><tr><th>WO #</th><th>Type</th><th>Engineer</th><th>Machines</th><th>CSAT</th><th>Date</th></tr></thead>
+      <tbody>${orders.map(o=>`<tr><td>${esc(o.wo_number||'—')}</td><td>${esc(o.order_type||'—')}</td><td>${esc(o.engineer||'—')}</td><td>${o.machine_count||0}</td><td>${o.csat_rating?('★'.repeat(o.csat_rating)):'—'}</td><td>${fmtDate(o.created_at)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="empty">No completed work orders matched to this mill yet. Full reports are viewable from the main dashboard's Submitted Orders tab (search by mill name).</div>`}
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Scheduled / Pending / Assigned (${assignments.length})</h3>
+      ${assignments.length ? `<table><thead><tr><th>Type</th><th>Engineer</th><th>Scheduled</th><th>Status</th><th>Notes</th></tr></thead>
+      <tbody>${assignments.map(a=>`<tr><td>${esc(a.order_type||'—')}</td><td>${esc(a.engineer||'—')}</td><td>${fmtDate(a.scheduled_date)}</td><td><span class="chip ${a.status}">${esc(a.status)}</span></td><td>${esc(a.notes||'—')}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="empty">No scheduled or pending assignments matched to this mill.</div>`}
+    </div>
+    <p class="sub no-print">Matching is by mill name / "also known as" list. If a work order is missing here, add the exact customer name used on that order to this mill's aliases (Edit Mill).</p>
+  `;
+}
+
+// ============================================================
+// Machines tab
+// ============================================================
+function renderMachinesTab(mill){
+  const machines = MU.machines.filter(x=>x.mill_id===mill.id);
+  return `
+    <div class="row between no-print" style="margin-bottom:10px;">
+      <span></span>
+      <button class="btn" onclick="MU.openMachineModal()">+ Add Machine</button>
+    </div>
+    ${machines.length ? `<table><thead><tr><th>Machine No</th><th>Type</th><th>Brand / Model</th><th>Serial No</th><th>Gauge/Dia</th><th>Installed</th><th class="no-print">Actions</th></tr></thead>
+    <tbody>${machines.map(m=>`<tr>
+      <td>${esc(m.machine_no)}</td><td>${esc(m.machine_type||'—')}</td>
+      <td>${esc(m.brand||'—')} ${esc(m.model||'')}</td><td>${esc(m.serial_no||'—')}</td>
+      <td>${esc(m.gauge||'—')} / ${esc(m.diameter||'—')}</td><td>${fmtDate(m.install_date)}</td>
+      <td class="no-print"><button class="btn ghost" style="font-size:11px;padding:5px 9px;" onclick="MU.openMachineModal('${m.id}')">Edit</button>
+      <button class="btn ghost" style="font-size:11px;padding:5px 9px;" onclick="MU.deleteMachine('${m.id}')">Delete</button></td>
+    </tr>`).join('')}</tbody></table>`
+    : `<div class="empty">No machines logged for this mill yet.</div>`}
+  `;
+}
+
+MU.deleteMachine = async function(id){
+  if(!confirm('Delete this machine? Its to-dos/pain points stay but lose the machine tag.')) return;
+  const res = await fetch(`${SUPA_URL}/rest/v1/machines?id=eq.${id}`, { method:'DELETE', headers: supaHeaders() });
+  if(res.ok){ MU.machines = MU.machines.filter(x=>x.id!==id); renderMillDetail(); }
+  else alert('Could not delete (admin/coordinator only).');
+};
+
+// ============================================================
+// Mill modal (add/edit)
+// ============================================================
+MU.openMillModal = function(id){
+  MU.editingMillId = id || null;
+  const m = id ? MU.mills.find(x=>x.id===id) : null;
+  document.getElementById('millModalTitle').textContent = id ? 'Edit Mill' : 'Add Mill';
+  document.getElementById('mName').value = m ? m.name : '';
+  document.getElementById('mArea').value = m ? (m.area||'') : '';
+  document.getElementById('mPhone').value = m ? (m.contact_phone||'') : '';
+  document.getElementById('mAddress').value = m ? (m.address||'') : '';
+  document.getElementById('mContact').value = m ? (m.contact_name||'') : '';
+  document.getElementById('mAliases').value = m ? (m.aliases||[]).join(', ') : '';
+  document.getElementById('mErr').textContent = '';
+  document.getElementById('millModal').classList.add('show');
+};
+document.getElementById('btnAddMill').onclick = ()=>MU.openMillModal(null);
+
+document.getElementById('mSaveBtn').onclick = async function(){
+  const name = document.getElementById('mName').value.trim();
+  const errEl = document.getElementById('mErr');
+  if(!name){ errEl.textContent = 'Mill name is required.'; return; }
+  const body = {
+    name,
+    area: document.getElementById('mArea').value.trim() || null,
+    address: document.getElementById('mAddress').value.trim() || null,
+    contact_name: document.getElementById('mContact').value.trim() || null,
+    contact_phone: document.getElementById('mPhone').value.trim() || null,
+    aliases: document.getElementById('mAliases').value.split(',').map(s=>s.trim()).filter(Boolean)
+  };
+  try{
+    let res;
+    if(MU.editingMillId){
+      res = await fetch(`${SUPA_URL}/rest/v1/mills?id=eq.${MU.editingMillId}`, { method:'PATCH', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+    } else {
+      body.created_by = ME.id;
+      res = await fetch(`${SUPA_URL}/rest/v1/mills`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+    }
+    const data = await res.json();
+    if(!res.ok) throw new Error((data && (data.message||data.error)) || 'Save failed');
+    if(MU.editingMillId){ const i = MU.mills.findIndex(x=>x.id===MU.editingMillId); MU.mills[i] = data[0]; }
+    else { MU.mills.push(data[0]); MU.currentMillId = data[0].id; }
+    MU.closeModal('millModal');
+    renderMillList(); renderMillDetail();
+  }catch(e){ errEl.textContent = e.message; }
+};
+
+// ============================================================
+// Machine modal (add/edit)
+// ============================================================
+MU.openMachineModal = function(id){
+  MU.editingMachineId = id || null;
+  const m = id ? MU.machines.find(x=>x.id===id) : null;
+  document.getElementById('machineModalTitle').textContent = id ? 'Edit Machine' : 'Add Machine';
+  document.getElementById('knNo').value = m ? m.machine_no : '';
+  document.getElementById('knType').value = m ? (m.machine_type||'') : '';
+  document.getElementById('knBrand').value = m ? (m.brand||'') : '';
+  document.getElementById('knModel').value = m ? (m.model||'') : '';
+  document.getElementById('knSerial').value = m ? (m.serial_no||'') : '';
+  document.getElementById('knInstall').value = m ? (m.install_date||'') : '';
+  document.getElementById('knGauge').value = m ? (m.gauge||'') : '';
+  document.getElementById('knDia').value = m ? (m.diameter||'') : '';
+  document.getElementById('knNotes').value = m ? (m.notes||'') : '';
+  document.getElementById('knErr').textContent = '';
+  document.getElementById('machineModal').classList.add('show');
+};
+
+document.getElementById('knSaveBtn').onclick = async function(){
+  const no = document.getElementById('knNo').value.trim();
+  const errEl = document.getElementById('knErr');
+  if(!no){ errEl.textContent = 'Machine No is required.'; return; }
+  if(!MU.currentMillId){ errEl.textContent = 'Select a mill first.'; return; }
+  const body = {
+    mill_id: MU.currentMillId, machine_no: no,
+    machine_type: document.getElementById('knType').value.trim() || null,
+    brand: document.getElementById('knBrand').value.trim() || null,
+    model: document.getElementById('knModel').value.trim() || null,
+    serial_no: document.getElementById('knSerial').value.trim() || null,
+    install_date: document.getElementById('knInstall').value || null,
+    gauge: document.getElementById('knGauge').value.trim() || null,
+    diameter: document.getElementById('knDia').value.trim() || null,
+    notes: document.getElementById('knNotes').value.trim() || null
+  };
+  try{
+    let res;
+    if(MU.editingMachineId){
+      res = await fetch(`${SUPA_URL}/rest/v1/machines?id=eq.${MU.editingMachineId}`, { method:'PATCH', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+    } else {
+      body.created_by = ME.id;
+      res = await fetch(`${SUPA_URL}/rest/v1/machines`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+    }
+    const data = await res.json();
+    if(!res.ok) throw new Error((data && (data.message||data.error)) || 'Save failed (duplicate machine no on this mill?)');
+    if(MU.editingMachineId){ const i = MU.machines.findIndex(x=>x.id===MU.editingMachineId); MU.machines[i] = data[0]; }
+    else MU.machines.push(data[0]);
+    MU.closeModal('machineModal');
+    renderMillDetail();
+  }catch(e){ errEl.textContent = e.message; }
+};
+
+// ============================================================
+// Entry modal (add to-do / pain point / suggestion / requirement / visit log)
+// ============================================================
+MU.openEntryModal = function(category){
+  MU.pendingCategory = category;
+  MU.pendingImages = [];
+  document.getElementById('entryModalTitle').textContent = `Add ${CATEGORY_LABELS[category].replace(/s$/,'')}`;
+  const machines = MU.machines.filter(x=>x.mill_id===MU.currentMillId);
+  document.getElementById('eMachine').innerHTML = `<option value="">Whole mill (no specific machine)</option>` + machines.map(m=>`<option value="${m.id}">${esc(m.machine_no)}${m.machine_type?' — '+esc(m.machine_type):''}</option>`).join('');
+  document.getElementById('eTitle').value = '';
+  document.getElementById('eDesc').value = '';
+  document.getElementById('ePriority').value = 'normal';
+  document.getElementById('eStatus').value = 'open';
+  document.getElementById('eVisitDate').value = todayStr();
+  document.getElementById('eThumbs').innerHTML = '';
+  document.getElementById('eErr').textContent = '';
+  document.getElementById('ePriorityRow').style.display = (category==='todo'||category==='pain_point') ? 'grid' : 'none';
+  document.getElementById('eStatusWrap').style.display = category === 'todo' ? '' : 'none';
+  document.getElementById('eVisitDateWrap').style.display = category === 'visit_log' ? '' : 'none';
+  document.getElementById('entryModal').classList.add('show');
+};
+
+async function compressImage(file, maxDim, quality){
+  maxDim = maxDim || 1600; quality = quality || 0.72;
+  const dataUrl = await new Promise((res,rej)=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+  const img = await new Promise((res,rej)=>{ const im = new Image(); im.onload = ()=>res(im); im.onerror = rej; im.src = dataUrl; });
+  let { width, height } = img;
+  if(width > maxDim || height > maxDim){
+    if(width > height){ height = Math.round(height * maxDim / width); width = maxDim; }
+    else { width = Math.round(width * maxDim / height); height = maxDim; }
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+document.getElementById('eImages').addEventListener('change', async function(e){
+  const files = Array.from(e.target.files || []);
+  for(const f of files){
+    try{ const compressed = await compressImage(f); MU.pendingImages.push(compressed); }catch(err){}
+  }
+  renderThumbs();
+  e.target.value = '';
+});
+function renderThumbs(){
+  document.getElementById('eThumbs').innerHTML = MU.pendingImages.map((d,i)=>`
+    <div class="thumb"><img src="${d}"><button class="rm" onclick="MU.removeThumb(${i})">&times;</button></div>`).join('');
+}
+MU.removeThumb = function(i){ MU.pendingImages.splice(i,1); renderThumbs(); };
+
+async function uploadImageToBucket(dataUrl, folder, idx){
+  const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+  if(!match) return null;
+  const mime = match[1]; const ext = mime === 'jpeg' ? 'jpg' : mime;
+  const binStr = atob(match[2]);
+  const bytes = new Uint8Array(binStr.length);
+  for(let i=0;i<binStr.length;i++) bytes[i] = binStr.charCodeAt(i);
+  const path = `${folder}/img_${Date.now()}_${idx}.${ext}`;
+  const res = await fetch(`${SUPA_URL}/storage/v1/object/photos/${path}`, {
+    method:'POST', headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': `image/${mime}` }, body: bytes
+  });
+  if(!res.ok) throw new Error('Photo upload failed');
+  return `${SUPA_URL}/storage/v1/object/public/photos/${path}`;
+}
+
+document.getElementById('eSaveBtn').onclick = async function(){
+  const errEl = document.getElementById('eErr');
+  const title = document.getElementById('eTitle').value.trim();
+  const desc = document.getElementById('eDesc').value.trim();
+  if(!title && !desc){ errEl.textContent = 'Add a title or some details.'; return; }
+  const btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving...';
+  try{
+    const urls = [];
+    for(let i=0;i<MU.pendingImages.length;i++){
+      urls.push(await uploadImageToBucket(MU.pendingImages[i], `mill-updates/${MU.currentMillId}/${MU.pendingCategory}`, i));
+    }
+    const body = {
+      mill_id: MU.currentMillId,
+      machine_id: document.getElementById('eMachine').value || null,
+      category: MU.pendingCategory,
+      title: title || null,
+      description: desc || null,
+      priority: document.getElementById('ePriority').value,
+      status: MU.pendingCategory === 'todo' ? document.getElementById('eStatus').value : 'open',
+      visit_date: MU.pendingCategory === 'visit_log' ? (document.getElementById('eVisitDate').value || null) : null,
+      images: urls,
+      created_by: ME.id,
+      created_by_name: ME.name
+    };
+    const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+    const data = await res.json();
+    if(!res.ok) throw new Error((data && (data.message||data.error)) || 'Save failed');
+    MU.updates.unshift(data[0]);
+    MU.closeModal('entryModal');
+    renderMillDetail();
+  }catch(e){ errEl.textContent = e.message; }
+  finally{ btn.disabled = false; btn.textContent = 'Save'; }
+};
+
+// ============================================================
+// Excel Import (mills + machines)
+// ============================================================
+let importRows = [], importHeaders = [], importMap = {};
+const IMPORT_FIELDS = [
+  {key:'mill', label:'Mill / Customer Name', required:true},
+  {key:'area', label:'Area / Location'},
+  {key:'machine_no', label:'Machine No / Tag'},
+  {key:'machine_type', label:'Machine Type'},
+  {key:'brand', label:'Brand'},
+  {key:'model', label:'Model'},
+  {key:'serial_no', label:'Serial No'},
+  {key:'gauge', label:'Gauge'},
+  {key:'diameter', label:'Diameter'}
+];
+const GUESS = {
+  mill: /mill|customer|factory|client/i, area: /area|location|city|town|district/i,
+  machine_no: /machine\s*no|m\/c\s*no|asset|tag|km\s*no/i, machine_type: /type/i,
+  brand: /brand|make/i, model: /model/i, serial_no: /serial/i, gauge: /gauge/i, diameter: /dia/i
+};
+
+document.getElementById('btnImportExcel').onclick = ()=>{
+  importRows = []; importHeaders = []; importMap = {};
+  document.getElementById('importFile').value = '';
+  document.getElementById('importPreviewWrap').style.display = 'none';
+  document.getElementById('importErr').textContent = '';
+  document.getElementById('importModal').classList.add('show');
+};
+
+document.getElementById('importFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const wb = XLSX.read(ev.target.result, { type:'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+    if(!rows.length){ document.getElementById('importErr').textContent = 'Sheet looks empty.'; return; }
+    importHeaders = rows[0].map(h=>String(h||'').trim());
+    importRows = rows.slice(1).filter(r => r.some(c => String(c||'').trim() !== ''));
+    importMap = {};
+    IMPORT_FIELDS.forEach(f=>{
+      const idx = importHeaders.findIndex(h => GUESS[f.key] && GUESS[f.key].test(h));
+      importMap[f.key] = idx >= 0 ? idx : -1;
+    });
+    renderImportPreview();
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function renderImportPreview(){
+  document.getElementById('importPreviewWrap').style.display = '';
+  document.getElementById('importMapGrid').innerHTML = IMPORT_FIELDS.map(f => `
+    <div>
+      <label class="f">${f.label}${f.required?' *':''}</label>
+      <select onchange="MU.setImportMap('${f.key}', this.value)">
+        <option value="-1">— not in file —</option>
+        ${importHeaders.map((h,i)=>`<option value="${i}" ${importMap[f.key]===i?'selected':''}>${esc(h||'Column '+(i+1))}</option>`).join('')}
+      </select>
+    </div>`).join('');
+  const headRow = `<tr>${IMPORT_FIELDS.map(f=>`<th>${f.label}</th>`).join('')}</tr>`;
+  const bodyRows = importRows.slice(0,15).map(r => `<tr>${IMPORT_FIELDS.map(f=>`<td>${esc(importMap[f.key]>=0?r[importMap[f.key]]:'')}</td>`).join('')}</tr>`).join('');
+  document.getElementById('importPreviewTable').innerHTML = `<thead>${headRow}</thead><tbody>${bodyRows}</tbody>`;
+  document.getElementById('importCount').textContent = `${importRows.length} data row(s) found. Showing first 15.`;
+}
+MU.setImportMap = function(key, val){ importMap[key] = parseInt(val,10); renderImportPreview(); };
+
+document.getElementById('importGoBtn').onclick = async function(){
+  const errEl = document.getElementById('importErr');
+  if(importMap.mill < 0){ errEl.textContent = 'You must map a "Mill / Customer Name" column.'; return; }
+  const btn = this; btn.disabled = true;
+  const progWrap = document.getElementById('importProgressWrap'); progWrap.style.display = '';
+  const progBar = document.getElementById('importProgressBar');
+  let done = 0, errors = 0;
+  const millCache = {}; // normalized name -> mill object
+  MU.mills.forEach(m => millCache[normName(m.name)] = m);
+
+  for(const row of importRows){
+    try{
+      const millName = String(row[importMap.mill]||'').trim();
+      if(!millName){ done++; continue; }
+      const key = normName(millName);
+      let mill = millCache[key];
+      if(!mill){
+        const body = { name: millName, area: importMap.area>=0 ? (String(row[importMap.area]||'').trim()||null) : null, created_by: ME.id };
+        const res = await fetch(`${SUPA_URL}/rest/v1/mills`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.message || 'mill insert failed');
+        mill = data[0]; millCache[key] = mill; MU.mills.push(mill);
+      }
+      const machineNo = importMap.machine_no>=0 ? String(row[importMap.machine_no]||'').trim() : '';
+      if(machineNo){
+        const exists = MU.machines.find(m2=>m2.mill_id===mill.id && normName(m2.machine_no)===normName(machineNo));
+        if(!exists){
+          const mbody = {
+            mill_id: mill.id, machine_no: machineNo,
+            machine_type: importMap.machine_type>=0 ? (String(row[importMap.machine_type]||'').trim()||null) : null,
+            brand: importMap.brand>=0 ? (String(row[importMap.brand]||'').trim()||null) : null,
+            model: importMap.model>=0 ? (String(row[importMap.model]||'').trim()||null) : null,
+            serial_no: importMap.serial_no>=0 ? (String(row[importMap.serial_no]||'').trim()||null) : null,
+            gauge: importMap.gauge>=0 ? (String(row[importMap.gauge]||'').trim()||null) : null,
+            diameter: importMap.diameter>=0 ? (String(row[importMap.diameter]||'').trim()||null) : null,
+            created_by: ME.id
+          };
+          const mres = await fetch(`${SUPA_URL}/rest/v1/machines`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(mbody) });
+          const mdata = await mres.json();
+          if(mres.ok) MU.machines.push(mdata[0]);
+        }
+      }
+    }catch(e){ errors++; }
+    done++;
+    progBar.style.width = Math.round(done/importRows.length*100) + '%';
+  }
+  errEl.textContent = errors ? `Done with ${errors} row(s) skipped due to errors.` : '';
+  btn.disabled = false;
+  renderMillList(); renderMillDetail();
+  if(!errors){ MU.closeModal('importModal'); alert(`Import complete: ${done} row(s) processed.`); }
+};
+
+// ============================================================
+// Export: Excel (mill-wise, machine-wise sheets across all data)
+// ============================================================
+document.getElementById('btnExportExcel').onclick = function(){
+  const wb = XLSX.utils.book_new();
+
+  const millRows = MU.mills.map(m=>{
+    const orders = ordersForMill(m);
+    const assignments = assignmentsForMill(m);
+    const csats = orders.map(o=>o.csat_rating).filter(n=>n>0);
+    return {
+      Mill: m.name, Area: m.area||'', Machines: MU.machines.filter(x=>x.mill_id===m.id).length,
+      'Completed WOs': orders.length,
+      'Pending/Assigned': assignments.filter(a=>a.status==='scheduled'||a.status==='in_progress').length,
+      'Avg CSAT': csats.length ? (csats.reduce((a,b)=>a+b,0)/csats.length).toFixed(1) : '',
+      'Open To-Dos': MU.updates.filter(u=>u.mill_id===m.id && u.category==='todo' && u.status!=='done').length
+    };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(millRows), 'Mills Overview');
+
+  const machineRows = MU.machines.slice().sort((a,b)=>{
+    const ma = MU.mills.find(m=>m.id===a.mill_id), mb = MU.mills.find(m=>m.id===b.mill_id);
+    return (ma?ma.name:'').localeCompare(mb?mb.name:'') || a.machine_no.localeCompare(b.machine_no);
+  }).map(x=>{
+    const mill = MU.mills.find(m=>m.id===x.mill_id);
+    return { Mill: mill?mill.name:'', 'Machine No': x.machine_no, Type: x.machine_type||'', Brand: x.brand||'', Model: x.model||'', Serial: x.serial_no||'', Gauge: x.gauge||'', Diameter: x.diameter||'', Installed: x.install_date||'' };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(machineRows), 'Machines');
+
+  ['todo','pain_point','suggestion','requirement','visit_log'].forEach(cat=>{
+    const rows = MU.updates.filter(u=>u.category===cat).slice().sort((a,b)=>{
+      const ma = MU.mills.find(m=>m.id===a.mill_id), mb = MU.mills.find(m=>m.id===b.mill_id);
+      return (ma?ma.name:'').localeCompare(mb?mb.name:'');
+    }).map(u=>{
+      const mill = MU.mills.find(m=>m.id===u.mill_id);
+      return {
+        Mill: mill?mill.name:'', Machine: machineName(u.machine_id), Title: u.title||'', Details: u.description||'',
+        Priority: u.priority, Status: u.status, 'Visit Date': u.visit_date||'',
+        'Reported By': u.created_by_name||'', Date: fmtDate(u.created_at), Photos: (u.images||[]).length
+      };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), CATEGORY_LABELS[cat].slice(0,31));
+  });
+
+  const woRows = MU.mills.flatMap(m => ordersForMill(m).map(o => ({
+    Mill: m.name, 'WO #': o.wo_number||'', Type: o.order_type||'', Engineer: o.engineer||'', Machines: o.machine_count||0, CSAT: o.csat_rating||'', Date: fmtDate(o.created_at)
+  })));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(woRows), 'Work Orders');
+
+  XLSX.writeFile(wb, `KnitI_Mill_Updates_${todayStr()}.xlsx`);
+};
+
+// ============================================================
+// Export: PDF (print view) — current mill if one is selected, else all
+// ============================================================
+document.getElementById('btnExportPdf').onclick = function(){
+  const mills = MU.currentMillId ? MU.mills.filter(m=>m.id===MU.currentMillId) : MU.mills;
+  const win = window.open('', '_blank');
+  const sections = mills.map(mill=>{
+    const machines = MU.machines.filter(x=>x.mill_id===mill.id);
+    const orders = ordersForMill(mill);
+    const catSections = ['todo','pain_point','suggestion','requirement','visit_log'].map(cat=>{
+      const rows = MU.updates.filter(u=>u.mill_id===mill.id && u.category===cat);
+      if(!rows.length) return '';
+      return `<h3>${CATEGORY_LABELS[cat]}</h3><table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:12px;">
+        <tr style="background:#eee;"><th>Machine</th><th>Title</th><th>Details</th><th>Priority/Status</th><th>Date</th><th>By</th></tr>
+        ${rows.map(u=>`<tr><td>${esc(machineName(u.machine_id))}</td><td>${esc(u.title||'')}</td><td>${esc(u.description||'')}</td><td>${esc(u.priority)}${cat==='todo'?' / '+esc(u.status):''}</td><td>${fmtDate(u.visit_date||u.created_at)}</td><td>${esc(u.created_by_name||'')}</td></tr>`).join('')}
+      </table>`;
+    }).join('');
+    return `
+      <div style="page-break-after:always;">
+        <h1>${esc(mill.name)}</h1>
+        <p>${esc(mill.area||'')} ${mill.address?(' • '+esc(mill.address)):''}</p>
+        <h3>Machines (${machines.length})</h3>
+        <table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:12px;">
+          <tr style="background:#eee;"><th>Machine No</th><th>Type</th><th>Brand/Model</th><th>Serial</th></tr>
+          ${machines.map(m=>`<tr><td>${esc(m.machine_no)}</td><td>${esc(m.machine_type||'')}</td><td>${esc(m.brand||'')} ${esc(m.model||'')}</td><td>${esc(m.serial_no||'')}</td></tr>`).join('')}
+        </table>
+        <h3>Work Orders (${orders.length})</h3>
+        <table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:12px;">
+          <tr style="background:#eee;"><th>WO #</th><th>Type</th><th>Engineer</th><th>CSAT</th><th>Date</th></tr>
+          ${orders.map(o=>`<tr><td>${esc(o.wo_number||'')}</td><td>${esc(o.order_type||'')}</td><td>${esc(o.engineer||'')}</td><td>${o.csat_rating||''}</td><td>${fmtDate(o.created_at)}</td></tr>`).join('')}
+        </table>
+        ${catSections}
+      </div>`;
+  }).join('');
+  win.document.write(`<html><head><title>Mill Report</title></head><body style="font-family:sans-serif;color:#1B2229;">${sections}</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(), 400);
+};
+
+function wireGlobalButtons(){ /* buttons already wired above via addEventListener */ }
+
+})();
+</script>
+</body>
+</html>

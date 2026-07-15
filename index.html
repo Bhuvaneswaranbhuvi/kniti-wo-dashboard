@@ -210,6 +210,7 @@
     <button class="tabBtn" id="tabSchedule">Schedule</button>
     <button class="tabBtn" id="tabAssignments">Assignments (Scheduling)</button>
     <button class="tabBtn" id="tabAdmin">Admin</button>
+    <button class="tabBtn" id="tabMills" onclick="window.location.href='mill-updates.html'" style="margin-left:auto;background:var(--amber-dark);color:#fff;border-color:var(--amber-dark);">🏭 Mills</button>
   </div>
 
   <div id="newOrderView" style="display:none;">
@@ -291,8 +292,8 @@
 // → API in your Supabase dashboard.) Leave blank to require manual
 // entry per device instead.
 // ============================================================
-const DEFAULT_SUPABASE_URL = '';
-const DEFAULT_SUPABASE_KEY = '';
+const DEFAULT_SUPABASE_URL = 'https://ipvgfjkyykhozomwwrfj.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwdmdmamt5eWtob3pvbXd3cmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjEwNzksImV4cCI6MjA5OTQ5NzA3OX0.wcRicTYWzDI7X381GNirTUcPHTq4lfQSqeVeH5u5GyE';
 // ============================================================
 
 let SUPA_URL = localStorage.getItem('settings:serverUrl') || DEFAULT_SUPABASE_URL || '';
@@ -1688,8 +1689,8 @@ if(SUPA_URL && SUPA_KEY && AUTH_TOKEN && ME.id){
   // (Project Settings → API in your Supabase dashboard.)
   // Leave blank to require manual entry on each device instead.
   // ============================================================
-  const DEFAULT_SUPABASE_URL = '';
-  const DEFAULT_SUPABASE_KEY = '';
+  const DEFAULT_SUPABASE_URL = 'https://ipvgfjkyykhozomwwrfj.supabase.co';
+  const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwdmdmamt5eWtob3pvbXd3cmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjEwNzksImV4cCI6MjA5OTQ5NzA3OX0.wcRicTYWzDI7X381GNirTUcPHTq4lfQSqeVeH5u5GyE';
   // ============================================================
 
   const SERVICE_STEPS = ['job','before','troubleshoot','parts','after','report','signoff','csat','done'];
