@@ -239,20 +239,38 @@
 
   <div id="assignmentsView" style="display:none;">
     <div class="card-panel">
-      <h3 style="margin-top:0;">Schedule a New Order</h3>
+      <h3 style="margin-top:0;">Schedule a New Order <span id="woPreview" style="font-family:monospace;font-size:13px;color:var(--steel);margin-left:8px;"></span></h3>
       <div class="form-grid">
         <select id="aType">
           <option value="service">Service / Repair</option>
           <option value="installation">Installation</option>
+          <option value="pm">Preventive Maintenance</option>
+          <option value="rnd">R&amp;D</option>
         </select>
-        <input type="text" id="aEngineer" placeholder="Engineer name">
-        <input type="text" id="aCustomer" placeholder="Customer / Mill">
+        <input type="text" id="aEngineer" list="engineerList" placeholder="Engineer name (pick or type)">
+        <datalist id="engineerList"></datalist>
+        <input type="text" id="aCustomer" list="millsDatalist" placeholder="Customer / Mill (pick or type)">
+        <datalist id="millsDatalist"></datalist>
         <input type="text" id="aLocation" placeholder="Location">
-        <input type="date" id="aDate">
+        <input type="date" id="aStartDate" title="Start date">
+        <input type="date" id="aEndDate" title="End date">
+        <input type="text" id="aTicket" placeholder="Ticket No (optional)">
       </div>
-      <textarea id="aNotes" placeholder="Notes for the engineer (what to expect, machine count, access instructions...)" rows="2" style="width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:13px;"></textarea>
+      <div id="aProdWrap" style="display:none;margin-top:10px;">
+        <label style="font-size:12px;font-weight:600;">Attach dispatch from Production (auto-fills machine details for the engineer)</label>
+        <select id="aProduction" style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;">
+          <option value="">— No production dependency / manual entry —</option>
+        </select>
+      </div>
+      <div id="aContactsInfo" class="sub" style="margin-top:8px;"></div>
+      <textarea id="aNotes" placeholder="Engineer comments to notice / what to carry (tools, prerequisite reports)..." rows="2" style="width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:13px;"></textarea>
       <button class="btn" id="createAssignment" style="margin-top:10px;">+ Schedule Order</button>
       <span id="assignStatus" style="margin-left:10px;font-size:12.5px;color:var(--ink-soft);"></span>
+    </div>
+
+    <div class="card-panel" id="unscheduledWrap" style="margin-top:16px;display:none;">
+      <h3 style="margin-top:0;">🏗️ Dispatched but Unscheduled</h3>
+      <div id="unscheduledList"></div>
     </div>
 
     <div class="filters" style="margin-top:16px;">
@@ -267,6 +285,28 @@
       <button class="btn" id="applyAssignFilters">Filter</button>
     </div>
     <div id="assignTableWrap"></div>
+  </div>
+
+  <!-- Reschedule / edit assignment modal (admin & coordinator) -->
+  <div id="editAssignOverlay" style="position:fixed;inset:0;background:rgba(10,14,18,.6);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:40px 16px;z-index:200;">
+    <div style="background:#fff;border-radius:10px;max-width:520px;width:100%;padding:22px;position:relative;">
+      <button style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft);" onclick="document.getElementById('editAssignOverlay').style.display='none'">&times;</button>
+      <h3 style="margin-top:0;">Reschedule / Edit <span id="eaWo" style="font-family:monospace;font-size:13px;color:var(--steel);"></span></h3>
+      <div class="form-grid">
+        <input type="text" id="eaEngineer" list="engineerList" placeholder="Engineer">
+        <select id="eaStatus">
+          <option value="scheduled">Scheduled</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <input type="date" id="eaStart" title="Start date">
+        <input type="date" id="eaEnd" title="End date">
+      </div>
+      <textarea id="eaNotes" rows="2" style="width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:13px;"></textarea>
+      <button class="btn" id="eaSaveBtn" style="margin-top:10px;">Save Changes</button>
+      <span id="eaStatusMsg" style="margin-left:10px;font-size:12.5px;color:var(--ink-soft);"></span>
+    </div>
   </div>
 
   <div id="adminView" style="display:none;">
@@ -700,27 +740,109 @@ document.addEventListener('click', (e)=>{
 });
 async function fetchAssignments(params){
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`${SUPA_URL}/rest/v1/assignments?order=scheduled_date.asc${qs?'&'+qs:''}`, { headers: supaHeaders() });
+  const res = await fetch(`${SUPA_URL}/rest/v1/assignments?order=start_date.asc.nullslast,scheduled_date.asc${qs?'&'+qs:''}`, { headers: supaHeaders() });
   return res.json();
 }
+
+// ---------- Order numbering: IN/SE/PM/RN - YYMM - seq ----------
+const TYPE_PREFIX = { installation:'IN', service:'SE', pm:'PM', rnd:'RN' };
+const TYPE_LABEL = { installation:'Install', service:'Service', pm:'PM Visit', rnd:'R&D' };
+function yymm(){ const d = new Date(); return String(d.getFullYear()).slice(2) + String(d.getMonth()+1).padStart(2,'0'); }
+async function nextWoNumber(type){
+  const prefix = `${TYPE_PREFIX[type]||'SE'}-${yymm()}-`;
+  // check both assignments and completed orders for this month's numbers
+  const [ar, or] = await Promise.all([
+    fetch(`${SUPA_URL}/rest/v1/assignments?wo_number=like.${encodeURIComponent(prefix)}*&select=wo_number`, { headers: supaHeaders() }),
+    fetch(`${SUPA_URL}/rest/v1/orders?wo_number=like.${encodeURIComponent(prefix)}*&select=wo_number`, { headers: supaHeaders() })
+  ]);
+  const rows = [].concat(ar.ok ? await ar.json() : [], or.ok ? await or.json() : []);
+  let maxSeq = 0;
+  rows.forEach(r=>{ const m = String(r.wo_number||'').match(/-(\d+)$/); if(m) maxSeq = Math.max(maxSeq, parseInt(m[1],10)); });
+  return prefix + String(maxSeq+1).padStart(3,'0');
+}
+async function refreshWoPreview(){
+  const el = document.getElementById('woPreview');
+  el.textContent = '…';
+  try{ el.textContent = await nextWoNumber(document.getElementById('aType').value); }catch(e){ el.textContent = ''; }
+}
+
+// ---------- Mills, engineers, production for dropdowns ----------
+let schedMills = [], schedProfiles = [], schedProduction = [];
+async function loadScheduleRefs(){
+  const [mr, pr, dr] = await Promise.all([
+    fetch(`${SUPA_URL}/rest/v1/mills?select=id,name,area,address,contacts`, { headers: supaHeaders() }),
+    fetch(`${SUPA_URL}/rest/v1/profiles?select=id,name,email,role`, { headers: supaHeaders() }),
+    fetch(`${SUPA_URL}/rest/v1/production_dispatch?select=id,mill_id,title,status,bom,dispatch_date,notes&order=created_at.desc`, { headers: supaHeaders() })
+  ]);
+  schedMills = mr.ok ? await mr.json() : [];
+  schedProfiles = pr.ok ? await pr.json() : [];
+  schedProduction = dr.ok ? await dr.json() : [];
+  document.getElementById('millsDatalist').innerHTML = schedMills.map(m=>`<option value="${esc(m.name)}">${esc(m.area||'')}</option>`).join('');
+  document.getElementById('engineerList').innerHTML = schedProfiles.map(p=>`<option value="${esc(p.name)}">${esc(p.role||'')}</option>`).join('');
+}
+function normNameIdx(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+function millByCustomerText(text){
+  const t = normNameIdx(text);
+  if(!t) return null;
+  return schedMills.find(m=>{ const n = normNameIdx(m.name); return n===t || n.includes(t) || t.includes(n); }) || null;
+}
+function millContactsText(mill){
+  const cs = (mill && mill.contacts) || [];
+  if(!cs.length) return '';
+  return cs.map(c=>`${c.name||''}${c.designation?' ('+c.designation+')':''}${c.phone?' — '+c.phone:''}`).join(', ');
+}
+function onScheduleCustomerChange(){
+  const mill = millByCustomerText(document.getElementById('aCustomer').value);
+  const type = document.getElementById('aType').value;
+  const info = document.getElementById('aContactsInfo');
+  const prodWrap = document.getElementById('aProdWrap');
+  const prodSel = document.getElementById('aProduction');
+  info.textContent = mill ? (millContactsText(mill) ? '📞 Mill contacts (shown to engineer): ' + millContactsText(mill) : '') : '';
+  if(mill && !document.getElementById('aLocation').value) document.getElementById('aLocation').value = mill.area || '';
+  if(type === 'installation'){
+    const plans = mill ? schedProduction.filter(p=>p.mill_id===mill.id) : [];
+    prodSel.innerHTML = `<option value="">— No production dependency / manual entry —</option>` +
+      plans.map(p=>{
+        const machines = (p.bom||[]).filter(b=>/machine|km|kniti|knit/i.test(b.item||'')).map(b=>`${b.qty||''}× ${b.item}`).join(', ');
+        return `<option value="${p.id}">${esc(p.title)} [${esc(p.status)}]${machines?' — '+esc(machines):''}</option>`;
+      }).join('');
+    prodWrap.style.display = '';
+  } else {
+    prodWrap.style.display = 'none';
+    prodSel.innerHTML = `<option value="">— No production dependency / manual entry —</option>`;
+  }
+}
+document.getElementById('aCustomer').addEventListener('change', onScheduleCustomerChange);
+document.getElementById('aCustomer').addEventListener('blur', onScheduleCustomerChange);
+document.getElementById('aType').addEventListener('change', ()=>{ refreshWoPreview(); onScheduleCustomerChange(); });
+document.getElementById('aStartDate').addEventListener('change', ()=>{
+  const s = document.getElementById('aStartDate').value, e = document.getElementById('aEndDate');
+  if(s && (!e.value || e.value < s)) e.value = s;
+});
 
 function renderAssignTable(rows){
   const wrap = document.getElementById('assignTableWrap');
   if(!rows.length){ wrap.innerHTML = '<div class="empty">No assignments scheduled yet.</div>'; return; }
+  const canManage = ME.role === 'admin' || ME.role === 'coordinator';
   wrap.innerHTML = `
   <table>
-    <thead><tr><th>Engineer</th><th>Type</th><th>Customer</th><th>Location</th><th>Scheduled</th><th>Status</th><th>Notes</th><th></th></tr></thead>
+    <thead><tr><th>WO #</th><th>Engineer</th><th>Type</th><th>Customer</th><th>Start</th><th>End</th><th>Status</th><th>Ticket</th><th>Notes</th><th></th></tr></thead>
     <tbody>
       ${rows.map(r=>`
         <tr>
+          <td style="font-family:monospace;font-size:11.5px;">${esc(r.wo_number)||'—'}</td>
           <td>${esc(r.engineer)}</td>
-          <td><span class="chip ${r.order_type}">${r.order_type==='installation'?'Install':'Service'}</span></td>
+          <td><span class="chip ${r.order_type}">${TYPE_LABEL[r.order_type]||esc(r.order_type)}</span></td>
           <td>${esc(r.customer)}</td>
-          <td>${esc(r.location)||'—'}</td>
-          <td>${esc(r.scheduled_date)||'—'}</td>
+          <td>${esc(r.start_date||r.scheduled_date)||'—'}</td>
+          <td>${esc(r.end_date)||'—'}</td>
           <td><span class="status-chip ${r.status}">${r.status.replace('_',' ')}</span></td>
-          <td style="max-width:220px;">${esc(r.notes)||'—'}</td>
-          <td>${r.status!=='cancelled' && r.status!=='completed' ? `<button class="btn" style="padding:5px 10px;font-size:11px;background:var(--danger,#B04A3D);" data-cancel="${r.id}">Cancel</button>` : ''}</td>
+          <td>${esc(r.ticket_no)||'—'}</td>
+          <td style="max-width:180px;">${esc(r.notes)||'—'}</td>
+          <td style="white-space:nowrap;">
+            ${canManage ? `<button class="btn" style="padding:5px 10px;font-size:11px;" data-edit-assign="${r.id}">Edit</button>` : ''}
+            ${canManage && r.status!=='cancelled' && r.status!=='completed' ? `<button class="btn" style="padding:5px 10px;font-size:11px;background:var(--danger,#B04A3D);" data-cancel="${r.id}">Cancel</button>` : ''}
+          </td>
         </tr>`).join('')}
     </tbody>
   </table>`;
@@ -732,7 +854,42 @@ function renderAssignTable(rows){
       loadAssignments();
     };
   });
+  wrap.querySelectorAll('[data-edit-assign]').forEach(btn=>{
+    btn.onclick = ()=>openEditAssign(rows.find(r=>r.id===btn.getAttribute('data-edit-assign')));
+  });
 }
+
+let editingAssignId = null;
+function openEditAssign(a){
+  if(!a) return;
+  editingAssignId = a.id;
+  document.getElementById('eaWo').textContent = a.wo_number || '';
+  document.getElementById('eaEngineer').value = a.engineer || '';
+  document.getElementById('eaStatus').value = a.status || 'scheduled';
+  document.getElementById('eaStart').value = a.start_date || a.scheduled_date || '';
+  document.getElementById('eaEnd').value = a.end_date || '';
+  document.getElementById('eaNotes').value = a.notes || '';
+  document.getElementById('eaStatusMsg').textContent = '';
+  document.getElementById('editAssignOverlay').style.display = 'flex';
+}
+document.getElementById('eaSaveBtn').onclick = async ()=>{
+  const msg = document.getElementById('eaStatusMsg');
+  msg.textContent = 'Saving…';
+  const start = document.getElementById('eaStart').value || null;
+  const body = {
+    engineer: document.getElementById('eaEngineer').value.trim(),
+    status: document.getElementById('eaStatus').value,
+    start_date: start,
+    scheduled_date: start,
+    end_date: document.getElementById('eaEnd').value || null,
+    notes: document.getElementById('eaNotes').value.trim()
+  };
+  const res = await fetch(`${SUPA_URL}/rest/v1/assignments?id=eq.${editingAssignId}`, {
+    method:'PATCH', headers: supaHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}), body: JSON.stringify(body)
+  });
+  msg.textContent = res.ok ? '✅ Saved' : '⚠️ Failed — permission?';
+  if(res.ok){ setTimeout(()=>{ document.getElementById('editAssignOverlay').style.display = 'none'; loadAssignments(); }, 600); }
+};
 
 async function loadAssignments(){
   const params = {};
@@ -740,31 +897,82 @@ async function loadAssignments(){
   const status = document.getElementById('afStatus').value;
   if(eng) params.engineer = `ilike.*${eng}*`;
   if(status) params.status = `eq.${status}`;
-  renderAssignTable(await fetchAssignments(params));
+  const rows = await fetchAssignments(params);
+  renderAssignTable(rows);
+  renderUnscheduled(rows);
+}
+
+function renderUnscheduled(assignments){
+  const wrap = document.getElementById('unscheduledWrap');
+  const list = document.getElementById('unscheduledList');
+  const linked = new Set(assignments.map(a=>a.production_id).filter(Boolean));
+  const un = schedProduction.filter(p=>(p.status==='dispatched'||p.status==='ready') && !linked.has(p.id));
+  if(!un.length){ wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  list.innerHTML = un.map(p=>{
+    const mill = schedMills.find(m=>m.id===p.mill_id);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
+      <span><b>${esc(p.title)}</b> — ${esc(mill?mill.name:'?')} <span class="sub">[${esc(p.status)}${p.dispatch_date?' • '+esc(p.dispatch_date):''}]</span></span>
+      <button class="btn" style="padding:5px 12px;font-size:12px;" data-sched-prod="${p.id}">Schedule Installation</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-sched-prod]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const p = schedProduction.find(x=>x.id===btn.getAttribute('data-sched-prod'));
+      const mill = schedMills.find(m=>m.id===p.mill_id);
+      document.getElementById('aType').value = 'installation';
+      document.getElementById('aCustomer').value = mill ? mill.name : '';
+      refreshWoPreview();
+      onScheduleCustomerChange();
+      setTimeout(()=>{ document.getElementById('aProduction').value = p.id; }, 50);
+      window.scrollTo({top:0, behavior:'smooth'});
+    };
+  });
 }
 
 document.getElementById('createAssignment').onclick = async ()=>{
   const engineer = document.getElementById('aEngineer').value.trim();
   const customer = document.getElementById('aCustomer').value.trim();
   const statusEl = document.getElementById('assignStatus');
+  const start = document.getElementById('aStartDate').value;
   if(!engineer || !customer){ statusEl.textContent = 'Engineer and Customer are required'; return; }
-  const body = {
-    order_type: document.getElementById('aType').value,
-    engineer, customer,
-    location: document.getElementById('aLocation').value.trim(),
-    scheduled_date: document.getElementById('aDate').value,
-    notes: document.getElementById('aNotes').value.trim()
-  };
+  if(!start){ statusEl.textContent = 'Start date is required'; return; }
   statusEl.textContent = 'Saving…';
   try{
+    const type = document.getElementById('aType').value;
+    const wo = await nextWoNumber(type);
+    const mill = millByCustomerText(customer);
+    const prodId = document.getElementById('aProduction').value || null;
+    const prod = prodId ? schedProduction.find(p=>p.id===prodId) : null;
+    const details = {};
+    if(mill && (mill.contacts||[]).length) details.contacts = mill.contacts;
+    if(prod){
+      details.production_title = prod.title;
+      details.machines_from_production = (prod.bom||[]).map(b=>({item:b.item, qty:b.qty, unit:b.unit, status:b.status}));
+    }
+    const body = {
+      order_type: type,
+      engineer, customer,
+      location: document.getElementById('aLocation').value.trim(),
+      scheduled_date: start,
+      start_date: start,
+      end_date: document.getElementById('aEndDate').value || null,
+      ticket_no: document.getElementById('aTicket').value.trim() || null,
+      wo_number: wo,
+      production_id: prodId,
+      details,
+      notes: document.getElementById('aNotes').value.trim()
+    };
     const res = await fetch(`${SUPA_URL}/rest/v1/assignments`, { method:'POST', headers: supaHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}), body: JSON.stringify(body) });
-    if(!res.ok) throw new Error('status ' + res.status);
-    statusEl.textContent = '✅ Scheduled';
-    document.getElementById('aEngineer').value = '';
-    document.getElementById('aCustomer').value = '';
-    document.getElementById('aLocation').value = '';
-    document.getElementById('aDate').value = '';
-    document.getElementById('aNotes').value = '';
+    if(!res.ok){
+      let detail = '';
+      try{ const j = await res.json(); detail = j.message||j.hint||''; }catch(e){}
+      throw new Error(detail || ('status '+res.status) + (res.status===400?' — run schedule-v5.sql in Supabase':''));
+    }
+    statusEl.textContent = `✅ Scheduled as ${wo}`;
+    ['aEngineer','aCustomer','aLocation','aStartDate','aEndDate','aTicket','aNotes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('aContactsInfo').textContent = '';
+    refreshWoPreview();
     loadAssignments();
   }catch(e){
     statusEl.textContent = '⚠️ ' + e.message;
@@ -790,7 +998,7 @@ document.getElementById('tabNewOrder').onclick = async ()=>{
 };
 document.getElementById('tabOrders').onclick = ()=> showView('orders');
 document.getElementById('tabSchedule').onclick = ()=>{ showView('schedule'); loadSchedule(); };
-document.getElementById('tabAssignments').onclick = ()=>{ showView('assignments'); loadAssignments(); };
+document.getElementById('tabAssignments').onclick = async ()=>{ showView('assignments'); await loadScheduleRefs(); refreshWoPreview(); loadAssignments(); };
 document.getElementById('tabAdmin').onclick = ()=>{ showView('admin'); loadAdmin(); };
 
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -806,8 +1014,18 @@ let calMonth = new Date().getMonth(); // 0-indexed
 function renderCalendar(assignments){
   const byDate = {};
   assignments.forEach(a=>{
-    if(!a.scheduled_date) return;
-    (byDate[a.scheduled_date] = byDate[a.scheduled_date] || []).push(a);
+    const start = a.start_date || a.scheduled_date;
+    if(!start) return;
+    const end = a.end_date && a.end_date >= start ? a.end_date : start;
+    // add the assignment to every day from start to end (max 60-day guard)
+    let cur = new Date(start + 'T00:00:00');
+    const stop = new Date(end + 'T00:00:00');
+    let guard = 0;
+    while(cur <= stop && guard < 60){
+      const ds = cur.toISOString().slice(0,10);
+      (byDate[ds] = byDate[ds] || []).push(a);
+      cur.setDate(cur.getDate()+1); guard++;
+    }
   });
 
   const firstOfMonth = new Date(calYear, calMonth, 1);
@@ -828,7 +1046,7 @@ function renderCalendar(assignments){
         <div class="cal-date">${d}</div>
         ${items.map(a=>{
           const cls = isOverdue(a) ? 'overdue' : a.status;
-          return `<div class="cal-item ${cls}" data-cal-item="${a.id}" title="${esc(a.customer)} — ${esc(a.engineer)}">${esc(a.engineer)}: ${esc(a.customer)}</div>`;
+          return `<div class="cal-item ${cls}" data-cal-item="${a.id}" style="cursor:pointer;" title="${esc(a.wo_number||'')} ${esc(a.customer)} — ${esc(a.engineer)} (click to open work order)" onclick="window.open('work_order.html?assignment=${a.id}','_blank')">${a.wo_number?`<b style="font-family:monospace;font-size:9.5px;">${esc(a.wo_number)}</b> `:''}${esc(a.engineer)}: ${esc(a.customer)}</div>`;
         }).join('')}
       </div>`;
   }
@@ -947,7 +1165,22 @@ async function loadAdmin(){
   const [profiles, orders] = await Promise.all([fetchProfiles(), fetchAllOrdersFull()]);
 
   wrap.innerHTML = `
-    <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--steel);border-bottom:1px solid var(--line);padding-bottom:6px;margin:0 0 12px;">Team Members</h3>
+    <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--steel);border-bottom:1px solid var(--line);padding-bottom:6px;margin:0 0 12px;">Add Team Member</h3>
+    <div class="form-grid">
+      <input type="text" id="ntmName" placeholder="Full name">
+      <input type="email" id="ntmEmail" placeholder="Email (used as username)">
+      <input type="text" id="ntmPassword" placeholder="Password (min 6 chars)">
+      <select id="ntmRole">
+        <option value="engineer">Engineer</option>
+        <option value="coordinator">Service Coordinator</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <button class="btn" id="ntmCreateBtn" style="margin-top:10px;">+ Create Team Member</button>
+    <span id="ntmStatus" style="margin-left:10px;font-size:12.5px;color:var(--ink-soft);"></span>
+    <p class="sub" style="margin-top:6px;">The account is created in Supabase auth automatically; a profile row appears below once done. Share the email + password with the engineer — they can change the password after first login.</p>
+
+    <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--steel);border-bottom:1px solid var(--line);padding-bottom:6px;margin:26px 0 12px;">Team Members</h3>
     <table>
       <thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead>
       <tbody>
@@ -990,6 +1223,39 @@ async function loadAdmin(){
       setTimeout(()=>{ btn.textContent = 'Save'; }, 1500);
     };
   });
+
+  document.getElementById('ntmCreateBtn').onclick = async ()=>{
+    const st = document.getElementById('ntmStatus');
+    const name = document.getElementById('ntmName').value.trim();
+    const email = document.getElementById('ntmEmail').value.trim();
+    const password = document.getElementById('ntmPassword').value;
+    const role = document.getElementById('ntmRole').value;
+    if(!name || !email || password.length < 6){ st.textContent = 'Name, email and a 6+ char password are required.'; return; }
+    st.textContent = 'Creating…';
+    try{
+      // Create the auth user with the anon key. This does NOT touch the
+      // admin's own session because we never store the returned tokens.
+      const res = await fetch(`${SUPA_URL}/auth/v1/signup`, {
+        method:'POST', headers:{ 'apikey': SUPA_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ email, password, data: { name } })
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.msg || data.error_description || data.message || 'signup failed');
+      const newId = (data.user && data.user.id) || data.id;
+      if(newId && role !== 'engineer'){
+        // profile row is created by trigger with default role; promote it
+        await fetch(`${SUPA_URL}/rest/v1/profiles?id=eq.${newId}`, {
+          method:'PATCH', headers: supaHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ role })
+        });
+      }
+      st.textContent = `✅ Created ${email}` + (data.user && !data.user.confirmed_at && !data.session ? ' — if email confirmation is ON in Supabase, they must confirm before first login' : '');
+      document.getElementById('ntmName').value = '';
+      document.getElementById('ntmEmail').value = '';
+      document.getElementById('ntmPassword').value = '';
+      setTimeout(loadAdmin, 1500);
+    }catch(e){ st.textContent = '⚠️ ' + e.message; }
+  };
 
   renderEngineerPerformance(orders);
   renderPartsAnalytics(orders);

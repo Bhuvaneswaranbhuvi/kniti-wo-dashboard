@@ -300,12 +300,12 @@
     }
   }
 
-  function toast(msg){
+  function toast(msg, ms){
     const t = document.getElementById('toast') || (function(){
       const el = document.createElement('div'); el.id='toast'; el.className='toast'; document.body.appendChild(el); return el;
     })();
     t.textContent = msg; t.classList.add('show');
-    clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 1800);
+    clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms || 1800);
   }
 
   function fileToDataUrl(file){
@@ -375,15 +375,31 @@
     }
   }
 
+  const WO_PREFIX = { installation:'IN', service:'SE', pm:'PM', rnd:'RN' };
   async function generateWoNumber(){
     const today = new Date();
-    const ymd = today.getFullYear().toString() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
-    const key = 'counter:wo:'+ymd;
+    const prefix = WO_PREFIX[state.orderType] || 'SE';
+    const yymm = String(today.getFullYear()).slice(2) + String(today.getMonth()+1).padStart(2,'0');
+    // Try the server first so numbers stay consistent with office-issued ones
+    if(state.serverUrl && state.supabaseKey && state.authToken){
+      try{
+        const like = `${prefix}-${yymm}-`;
+        const [ar, or] = await Promise.all([
+          fetch(`${state.serverUrl}/rest/v1/assignments?wo_number=like.${encodeURIComponent(like)}*&select=wo_number`, { headers: { 'apikey': state.supabaseKey, 'Authorization': `Bearer ${state.authToken}` } }),
+          fetch(`${state.serverUrl}/rest/v1/orders?wo_number=like.${encodeURIComponent(like)}*&select=wo_number`, { headers: { 'apikey': state.supabaseKey, 'Authorization': `Bearer ${state.authToken}` } })
+        ]);
+        const rows = [].concat(ar.ok ? await ar.json() : [], or.ok ? await or.json() : []);
+        let maxSeq = 0;
+        rows.forEach(r=>{ const m = String(r.wo_number||'').match(/-(\d+)$/); if(m) maxSeq = Math.max(maxSeq, parseInt(m[1],10)); });
+        return `${prefix}-${yymm}-${String(maxSeq+1).padStart(3,'0')}`;
+      }catch(e){ /* fall back to local counter below */ }
+    }
+    const key = 'counter:wo:'+prefix+yymm;
     let seq = 1;
     const raw = await storageGetSafe(key);
     if(raw){ seq = (parseInt(raw,10)||0) + 1; }
     await storageSetSafe(key, String(seq));
-    return `WO-${ymd}-${String(seq).padStart(3,'0')}`;
+    return `${prefix}-${yymm}-${String(seq).padStart(3,'0')}`;
   }
 
   // ---- Offline submission queue: if the server can't be reached, save the
@@ -745,6 +761,14 @@
         <h2>Machine Installation Order</h2>
         <p class="sub" style="margin-bottom:0;">New system installation — site readiness, per-machine setup, testing, training and network setup.</p>
       </div>
+      <div class="card order-choice" data-choose="pm">
+        <h2>Preventive Maintenance Visit</h2>
+        <p class="sub" style="margin-bottom:0;">Scheduled PM visit — camera cleaning, calibration check, light/wiper inspection, health report.</p>
+      </div>
+      <div class="card order-choice" data-choose="rnd">
+        <h2>R&amp;D Visit</h2>
+        <p class="sub" style="margin-bottom:0;">Data collection, trials, and experimental work at customer site.</p>
+      </div>
     </div>`;
   }
 
@@ -925,13 +949,28 @@
     state.job.customer = a.customer || '';
     state.job.location = a.location || '';
     state.job.engineer = state.userProfileName || '';
+    if(a.start_date || a.scheduled_date) state.job.startDate = a.start_date || a.scheduled_date;
+    if(a.end_date) state.job.endDate = a.end_date;
     state.step = 0;
-    if(!state.job.wo){ generateWoNumber().then(wo=>{ state.job.wo = wo; }); }
-    // Let the office's prefill notes flow into Job details visibly for the engineer
-    if(a.notes) toast('Assignment notes: ' + a.notes);
+    if(a.wo_number){ state.job.wo = a.wo_number; }
+    else if(!state.job.wo){ generateWoNumber().then(wo=>{ state.job.wo = wo; render(); }); }
+    // Surface everything the office attached for the engineer
+    const d = a.details || {};
+    const bits = [];
+    if(a.ticket_no) bits.push('Ticket: ' + a.ticket_no);
+    if(a.notes) bits.push('Notes: ' + a.notes);
+    if(Array.isArray(d.contacts) && d.contacts.length){
+      bits.push('Mill contacts: ' + d.contacts.map(c=>`${c.name||''}${c.designation?' ('+c.designation+')':''}${c.phone?' '+c.phone:''}`).join(', '));
+    }
+    if(d.production_title) bits.push('From production: ' + d.production_title);
+    if(Array.isArray(d.machines_from_production) && d.machines_from_production.length){
+      bits.push('Shipment items: ' + d.machines_from_production.map(m=>`${m.qty||''}× ${m.item||''}${m.status==='shortage'?' (SHORTAGE)':''}`).join(', '));
+    }
+    if(bits.length) toast('Assignment info — ' + bits.join(' • '), 9000);
     render();
   }
 
+  const HEADER_TITLES = { installation:'Installation Order', service:'Work Order', pm:'PM Visit Order', rnd:'R&D Visit Order' };
   function headerHtml(){
     const keys = steps();
     const idx = state.step;
@@ -945,9 +984,12 @@
     return `
     <div class="header">
       <div class="header-top">
-        <div>
-          <div class="header-title">${state.orderType==='installation' ? 'Installation Order' : 'Work Order'}</div>
-          <div class="header-wo">${esc(state.job.wo) || 'WO # — not set'}</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="status-chip no-print" id="backToSelectionBtn" style="cursor:pointer;border:none;" title="Back to order type selection">⌂ Back</button>
+          <div>
+            <div class="header-title">${HEADER_TITLES[state.orderType] || 'Work Order'}</div>
+            <div class="header-wo">${esc(state.job.wo) || 'WO # — not set'}</div>
+          </div>
         </div>
         <div class="status-chip">${currentKey()==='done'?'Completed':'In Progress'}</div>
       </div>
@@ -2539,6 +2581,21 @@
   function bindEvents(){
     const key = currentKey();
 
+    const backBtn = document.getElementById('backToSelectionBtn');
+    if(backBtn) backBtn.onclick = ()=>{
+      if(key !== 'done'){
+        const sure = confirm('Go back to order type selection?\n\nYour progress is saved as a draft — you can resume it when you return.');
+        if(!sure) return;
+        saveDraft && saveDraft();
+        state.pendingDraft = null; state.draftHandled = true;
+        state.orderType = null; state.step = 0; state.gateView = 'choose';
+        render();
+        return;
+      }
+      resetState();
+      render();
+    };
+
     if(key==='job'){
       document.querySelectorAll('input[name="machineMode"]').forEach(r=>{
         r.onchange = ()=>{ state.machineMode = r.value; render(); };
@@ -2892,6 +2949,24 @@
     }
 
     flushSubmissionQueue();
+
+    // Deep link from the office calendar: work_order.html?assignment=<id>
+    const urlAssignId = new URLSearchParams(location.search).get('assignment');
+    if(urlAssignId && state.authToken && state.serverUrl && state.supabaseKey){
+      try{
+        await ensureFreshToken();
+        const res = await fetch(`${state.serverUrl}/rest/v1/assignments?id=eq.${encodeURIComponent(urlAssignId)}&select=*`, {
+          headers: { 'apikey': state.supabaseKey, 'Authorization': `Bearer ${state.authToken}` }
+        });
+        const rows = res.ok ? await res.json() : [];
+        if(rows.length){
+          state.pendingDraft = null; state.draftHandled = true;
+          applyAssignmentPrefill(rows[0]);
+          return; // applyAssignmentPrefill renders
+        }
+      }catch(e){ /* fall through to normal render */ }
+    }
+
     render();
   })();
 })();

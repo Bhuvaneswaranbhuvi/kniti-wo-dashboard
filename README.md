@@ -15,7 +15,8 @@ Supabase URL + anon key are baked in; localStorage settings override them if pre
 4. `mill-updates-schema.sql` — mills, machines, mill_updates
 5. `mill-updates-v2.sql` — Knit-I machine config columns + production_dispatch table
 6. `mill-updates-v3.sql` — multi-contact support on mills (contacts jsonb)
-7. `mill-updates-v4.sql` — To-Do comments thread, progress %, bottleneck flag  ← **run this now**
+7. `mill-updates-v4.sql` — To-Do comments thread, progress %, bottleneck flag
+8. `schedule-v5.sql` — scheduling upgrade: start/end dates, order numbers (IN/SE/PM/RN-YYMM-###), tickets, production link  ← **run this now**
 
 ## Deploy
 Copy all files to the repo root, commit, push. GitHub Pages serves from root.
