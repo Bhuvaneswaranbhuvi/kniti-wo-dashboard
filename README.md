@@ -13,7 +13,9 @@ Supabase URL + anon key are baked in; localStorage settings override them if pre
 2. `auth-and-roles.sql` — profiles + roles *(already applied — skip if it errors)*
 3. `permissions-v2.sql` *(already applied — skip if it errors)*
 4. `mill-updates-schema.sql` — mills, machines, mill_updates
-5. `mill-updates-v2.sql` — Knit-I machine config columns + production_dispatch table  ← **run this now**
+5. `mill-updates-v2.sql` — Knit-I machine config columns + production_dispatch table
+6. `mill-updates-v3.sql` — multi-contact support on mills (contacts jsonb)
+7. `mill-updates-v4.sql` — To-Do comments thread, progress %, bottleneck flag  ← **run this now**
 
 ## Deploy
 Copy all files to the repo root, commit, push. GitHub Pages serves from root.
