@@ -395,6 +395,26 @@ const MU = window.MU = {
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtDate(s){ if(!s) return '—'; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}); }
 function normName(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+function parseFlexibleDate(raw){
+  if(raw==null || raw==='') return null;
+  if(typeof raw === 'number' && isFinite(raw)){
+    // Excel serial date (days since 1899-12-30)
+    const utcDays = Math.floor(raw - 25569);
+    const d = new Date(utcDays * 86400 * 1000);
+    return isNaN(d) ? null : d.toISOString().slice(0,10);
+  }
+  const s = String(raw).trim();
+  if(!s) return null;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;                 // already ISO
+  let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/); // DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+  if(m){
+    let [, d, mo, y] = m;
+    if(parseInt(mo,10) > 12 && parseInt(d,10) <= 12) [d, mo] = [mo, d]; // swap if it's actually MM/DD/YYYY
+    return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  const parsed = new Date(s);
+  return isNaN(parsed) ? null : parsed.toISOString().slice(0,10);
+}
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function optHtml(list, selected){
   return `<option value="">—</option>` + list.map(o=>`<option value="${esc(o)}" ${o===selected?'selected':''}>${esc(o)}</option>`).join('');
@@ -1128,7 +1148,7 @@ document.getElementById('importGoBtn').onclick = async function(){
             machineBody = {
               mill_id: mill.id, machine_no: machineNo,
               machine_type: g(3)||null, brand: g(4)||null, model: g(5)||null, serial_no: g(6)||null,
-              install_date: g(7)||null, gauge: g(8)||null, diameter: g(9)||null,
+              install_date: parseFlexibleDate(row[7]), gauge: g(8)||null, diameter: g(9)||null,
               cabinet_serial: g(10)||null, kniti_version: g(11)||null, internet_component: g(12)||null,
               processing_unit: g(13)||null, storage_type: g(14)||null, storage_capacity: g(15)||null,
               display_type: g(16)||null, display_size: g(17)||null,
@@ -1186,7 +1206,7 @@ document.getElementById('importGoBtn').onclick = async function(){
         const body = {
           mill_id: mill.id, machine_id: machine ? machine.id : null, category: cat,
           title: g(3)||null, description: g(4)||null, priority: prio, status: stat,
-          visit_date: g(7)||null, images: [],
+          visit_date: parseFlexibleDate(row[7]), images: [],
           created_by: ME.id, created_by_name: g(8) || ME.name
         };
         const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
