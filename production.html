@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knit-I — Production &amp; Dispatch</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --navy:#16232E; --steel:#3D6B8C; --steel-light:#DCE7ED; --amber-dark:#B5701C;
+    --paper:#F6F5F1; --line:#D9DCD9; --ink:#1B2229; --ink-soft:#5B6570; --danger:#B04A3D;
+    --mono:'SFMono-Regular',Consolas,monospace; --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+  header{background:var(--navy);color:#fff;padding:18px 24px;}
+  header h1{margin:0;font-size:18px;}
+  header .sub{color:#B9C6CF;font-size:12.5px;margin-top:3px;}
+  header a{color:#DCE7ED;text-decoration:none;font-size:12.5px;}
+  header a:hover{text-decoration:underline;}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px;}
+  .btn{padding:9px 16px;border:none;border-radius:7px;background:var(--navy);color:#fff;font-size:13px;cursor:pointer;font-weight:600;}
+  .btn.ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
+  .btn.amber{background:var(--amber-dark);}
+  .btn.danger{background:var(--danger);}
+  .btn.sm{font-size:11px;padding:5px 9px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  input,select,textarea{padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff;font-family:inherit;color:var(--ink);}
+  textarea{width:100%;resize:vertical;}
+  label.f{display:block;font-size:12px;font-weight:600;margin:10px 0 4px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  @media (max-width:760px){ .grid2,.grid3{grid-template-columns:1fr;} }
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .row.between{justify-content:space-between;}
+  .chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700;text-transform:uppercase;}
+  .chip.planned,.chip.pending{background:#E4EEF3;color:var(--steel);}
+  .chip.in_production{background:#E4EEF3;color:var(--steel);}
+  .chip.ready,.chip.dispatched{background:#FCEED4;color:#8A5A17;}
+  .chip.delivered,.chip.shipped{background:#DCEFE1;color:#2C6B3F;}
+  .chip.shortage{background:#F3DCDC;color:#8A2C2C;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:12px;}
+  .card .title{font-weight:700;font-size:15px;}
+  .card .meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  th,td{padding:8px 10px;text-align:left;font-size:12.5px;border-bottom:1px solid var(--line);}
+  th{background:var(--steel-light);color:var(--navy);text-transform:uppercase;font-size:10px;letter-spacing:.04em;}
+  tr:last-child td{border-bottom:none;}
+  .empty{padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,14,18,.6);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 16px;z-index:150;}
+  .modal-overlay.show{display:flex;}
+  .modal-box{background:#fff;border-radius:10px;max-width:820px;width:100%;padding:22px;position:relative;}
+  .modal-box h2{margin-top:0;font-size:17px;}
+  .modal-box h4{margin:16px 0 4px;font-size:13px;color:var(--steel);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--line);padding-bottom:4px;}
+  .modal-box .closeBtn{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft);}
+  .bomRow{display:grid;grid-template-columns:2fr 70px 70px 120px 1.4fr 28px;gap:6px;margin-bottom:6px;align-items:center;}
+  .thumbRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .thumbRow .thumb{position:relative;width:64px;height:64px;}
+  .thumbRow .thumb img{width:100%;height:100%;object-fit:cover;border-radius:5px;border:1px solid var(--line);}
+  .thumbRow .thumb .rm{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;}
+  .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .imgs img{width:64px;height:64px;object-fit:cover;border-radius:5px;border:1px solid var(--line);cursor:zoom-in;}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:300;cursor:zoom-out;}
+  .lightbox img{max-width:92%;max-height:92%;}
+  .sub{font-size:12.5px;color:var(--ink-soft);}
+  .err{color:var(--danger);font-size:12.5px;margin-top:8px;}
+  #notSignedIn{max-width:480px;margin:80px auto;text-align:center;}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--steel);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media print{ header,.no-print{display:none!important;} body{background:#fff;} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Knit-I — Production &amp; Dispatch</h1>
+  <div class="sub"><a href="index.html">&larr; Dashboard</a> &nbsp;•&nbsp; <a href="mill-updates.html">🏭 Mill Updates</a> &nbsp;•&nbsp; <span id="whoami"></span></div>
+</header>
+
+<div id="notSignedIn" style="display:none;">
+  <h2>Please sign in first</h2>
+  <p class="sub">This page shares your login with the main dashboard. Sign in there, then come back here.</p>
+  <a class="btn" href="index.html">Go to Dashboard</a>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+  <div class="row between no-print" style="margin-bottom:14px;">
+    <div class="row">
+      <button class="btn amber" id="btnAddPlan">+ New Production Plan</button>
+      <select id="millFilter" onchange="PD.render()">
+        <option value="">All mills</option>
+      </select>
+      <select id="statusFilter" onchange="PD.render()">
+        <option value="">All statuses</option>
+        <option value="planned">Planned</option>
+        <option value="in_production">In Production</option>
+        <option value="ready">Ready</option>
+        <option value="dispatched">Dispatched</option>
+        <option value="delivered">Delivered</option>
+      </select>
+      <label style="font-size:12.5px;"><input type="checkbox" id="shortageOnly" onchange="PD.render()"> Shortages only</label>
+    </div>
+    <div class="row">
+      <button class="btn ghost" onclick="PD.exportExcel()">⬇ Excel</button>
+      <button class="btn ghost" onclick="PD.exportPdf()">🖨️ PDF / Print</button>
+    </div>
+  </div>
+
+  <div id="planList"></div>
+</div>
+
+<!-- ===== Plan Modal ===== -->
+<div class="modal-overlay" id="planModal">
+  <div class="modal-box">
+    <button class="closeBtn" onclick="PD.closeModal()">&times;</button>
+    <h2 id="planModalTitle">New Production Plan</h2>
+    <div class="grid2">
+      <div><label class="f">Mill *</label><select id="pMill" style="width:100%;"></select></div>
+      <div><label class="f">Status</label>
+        <select id="pStatus" style="width:100%;">
+          <option value="planned">Planned</option>
+          <option value="in_production">In Production</option>
+          <option value="ready">Ready</option>
+          <option value="dispatched">Dispatched</option>
+          <option value="delivered">Delivered</option>
+        </select>
+      </div>
+    </div>
+    <label class="f">Plan Title *</label>
+    <input type="text" id="pTitle" style="width:100%;" placeholder="e.g. Knit-I install batch — 4 machines">
+    <div class="grid2">
+      <div><label class="f">Planned Date</label><input type="date" id="pPlanned" style="width:100%;"></div>
+      <div><label class="f">Dispatch Date</label><input type="date" id="pDispatch" style="width:100%;"></div>
+    </div>
+    <h4>Courier / Package Tracking</h4>
+    <div class="grid3">
+      <div><label class="f">Courier Name</label><input type="text" id="pCourier" style="width:100%;" placeholder="e.g. DTDC, Professional"></div>
+      <div><label class="f">Tracking No</label><input type="text" id="pTrackNo" style="width:100%;"></div>
+      <div><label class="f">Tracking URL (optional)</label><input type="text" id="pTrackUrl" style="width:100%;" placeholder="https://…"></div>
+    </div>
+    <h4>BOM / Shipment Items</h4>
+    <p class="sub" style="margin:4px 0 8px;">Mark each line: <b>pending</b> (not yet packed), <b>shipped</b> (in this shipment) or <b>shortage</b> (missing from this shipment).</p>
+    <div id="bomRows"></div>
+    <button class="btn ghost sm" onclick="PD.addBomRow()">+ Add Item</button>
+    <h4>Mechanical Diagrams / Packing Photos</h4>
+    <input type="file" id="pImages" accept="image/*" multiple>
+    <div class="thumbRow" id="pThumbs"></div>
+    <label class="f">Notes</label>
+    <textarea id="pNotes" rows="2"></textarea>
+    <div class="err" id="pErr"></div>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" id="pSaveBtn">Save Plan</button>
+      <button class="btn ghost" onclick="PD.closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="lightboxWrap"></div>
+
+<script>
+(function(){
+const DEFAULT_SUPABASE_URL = 'https://ipvgfjkyykhozomwwrfj.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwdmdmamt5eWtob3pvbXd3cmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjEwNzksImV4cCI6MjA5OTQ5NzA3OX0.wcRicTYWzDI7X381GNirTUcPHTq4lfQSqeVeH5u5GyE';
+const SUPA_URL = localStorage.getItem('settings:serverUrl') || DEFAULT_SUPABASE_URL;
+const SUPA_KEY = localStorage.getItem('settings:supabaseKey') || DEFAULT_SUPABASE_KEY;
+let AUTH_TOKEN = localStorage.getItem('session:authToken') || '';
+const REFRESH_TOKEN = localStorage.getItem('session:refreshToken') || '';
+const ME = {
+  id: localStorage.getItem('session:userId') || '',
+  name: localStorage.getItem('session:userProfileName') || '',
+  role: localStorage.getItem('session:userRole') || ''
+};
+function supaHeaders(extra){
+  return Object.assign({ 'apikey': SUPA_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' }, extra || {});
+}
+async function ensureFreshToken(){
+  try{
+    const payload = JSON.parse(atob(AUTH_TOKEN.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if(!payload.exp || (payload.exp*1000) > (Date.now()+120000)) return;
+  }catch(e){ return; }
+  try{
+    const res = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method:'POST', headers:{ 'apikey':SUPA_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ refresh_token: REFRESH_TOKEN })
+    });
+    const data = await res.json();
+    if(res.ok && data.access_token){
+      AUTH_TOKEN = data.access_token;
+      localStorage.setItem('session:authToken', AUTH_TOKEN);
+      if(data.refresh_token) localStorage.setItem('session:refreshToken', data.refresh_token);
+    }
+  }catch(e){}
+}
+
+const PD = window.PD = { mills: [], plans: [], editingId: null, pendingImages: [], existingImages: [] };
+const STATUS_LABELS = { planned:'Planned', in_production:'In Production', ready:'Ready', dispatched:'Dispatched', delivered:'Delivered' };
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(s){ if(!s) return '—'; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+if(!AUTH_TOKEN || !ME.id){
+  document.getElementById('notSignedIn').style.display = '';
+} else {
+  document.getElementById('app').style.display = '';
+  document.getElementById('whoami').textContent = `${ME.name} (${ME.role})`;
+  boot();
+}
+
+async function boot(){
+  await ensureFreshToken();
+  const [mr, pr] = await Promise.all([
+    fetch(`${SUPA_URL}/rest/v1/mills?select=id,name,area&order=name.asc`, { headers: supaHeaders() }),
+    fetch(`${SUPA_URL}/rest/v1/production_dispatch?select=*&order=created_at.desc`, { headers: supaHeaders() })
+  ]);
+  PD.mills = mr.ok ? await mr.json() : [];
+  PD.plans = pr.ok ? await pr.json() : [];
+  const mf = document.getElementById('millFilter');
+  mf.innerHTML = `<option value="">All mills</option>` + PD.mills.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+  // ?mill=<id> deep link from mill-updates page
+  const pm = new URLSearchParams(location.search).get('mill');
+  if(pm && PD.mills.some(m=>m.id===pm)) mf.value = pm;
+  PD.render();
+}
+
+function millName(id){ const m = PD.mills.find(x=>x.id===id); return m ? m.name : '(unknown mill)'; }
+
+PD.render = function(){
+  const millF = document.getElementById('millFilter').value;
+  const statusF = document.getElementById('statusFilter').value;
+  const shortOnly = document.getElementById('shortageOnly').checked;
+  let plans = PD.plans;
+  if(millF) plans = plans.filter(p=>p.mill_id===millF);
+  if(statusF) plans = plans.filter(p=>p.status===statusF);
+  if(shortOnly) plans = plans.filter(p=>(p.bom||[]).some(b=>b.status==='shortage'));
+  const el = document.getElementById('planList');
+  if(!plans.length){ el.innerHTML = `<div class="empty">No production plans match. Click "+ New Production Plan" to create one.</div>`; return; }
+  el.innerHTML = plans.map(p=>{
+    const bom = p.bom||[];
+    const shortage = bom.filter(b=>b.status==='shortage');
+    const canEdit = p.created_by === ME.id || ME.role === 'admin' || ME.role === 'coordinator';
+    return `<div class="card">
+      <div class="row between">
+        <div>
+          <div class="title">${esc(p.title)} <span class="sub">• ${esc(millName(p.mill_id))}</span></div>
+          <div class="meta">Planned: ${fmtDate(p.planned_date)} • Dispatch: ${fmtDate(p.dispatch_date)}
+            ${p.courier_name?('• '+esc(p.courier_name)):''}
+            ${p.tracking_no?('• Tracking: '+(p.tracking_url?`<a href="${esc(p.tracking_url)}" target="_blank">${esc(p.tracking_no)}</a>`:esc(p.tracking_no))):''}
+            • by ${esc(p.created_by_name||'')}</div>
+        </div>
+        <div class="row">
+          <span class="chip ${p.status}">${STATUS_LABELS[p.status]||p.status}</span>
+          ${canEdit?`<button class="btn ghost sm no-print" onclick="PD.openModal('${p.id}')">Edit</button>
+          <button class="btn ghost sm no-print" onclick="PD.deletePlan('${p.id}')">Delete</button>`:''}
+        </div>
+      </div>
+      ${p.notes?`<p style="font-size:13px;margin:8px 0 0;white-space:pre-wrap;">${esc(p.notes)}</p>`:''}
+      ${bom.length?`<table style="margin-top:10px;"><thead><tr><th>Item</th><th>Qty</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody>${bom.map(b=>`<tr><td>${esc(b.item)}</td><td>${esc(b.qty)} ${esc(b.unit||'')}</td><td><span class="chip ${esc(b.status||'pending')}">${esc(b.status||'pending')}</span></td><td>${esc(b.note||'')}</td></tr>`).join('')}</tbody></table>`:''}
+      ${shortage.length?`<p class="sub" style="color:var(--danger);margin:8px 0 0;">⚠ ${shortage.length} shortage item(s): ${shortage.map(b=>esc(b.item)).join(', ')}</p>`:''}
+      ${(p.images||[]).length?`<div class="imgs">${p.images.map(u=>`<img src="${u}" onclick="PD.showLightbox('${u}')">`).join('')}</div>`:''}
+    </div>`;
+  }).join('');
+};
+
+PD.showLightbox = function(url){
+  document.getElementById('lightboxWrap').innerHTML = `<div class="lightbox" onclick="this.remove()"><img src="${url}"></div>`;
+};
+
+// ---------------- Modal ----------------
+PD.openModal = function(id){
+  PD.editingId = id || null;
+  PD.pendingImages = [];
+  const p = id ? PD.plans.find(x=>x.id===id) : null;
+  PD.existingImages = p ? (p.images||[]).slice() : [];
+  document.getElementById('planModalTitle').textContent = id ? 'Edit Production Plan' : 'New Production Plan';
+  document.getElementById('pMill').innerHTML = PD.mills.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+  if(p) document.getElementById('pMill').value = p.mill_id;
+  else if(document.getElementById('millFilter').value) document.getElementById('pMill').value = document.getElementById('millFilter').value;
+  document.getElementById('pStatus').value = p ? p.status : 'planned';
+  document.getElementById('pTitle').value = p ? p.title : '';
+  document.getElementById('pPlanned').value = p ? (p.planned_date||'') : todayStr();
+  document.getElementById('pDispatch').value = p ? (p.dispatch_date||'') : '';
+  document.getElementById('pCourier').value = p ? (p.courier_name||'') : '';
+  document.getElementById('pTrackNo').value = p ? (p.tracking_no||'') : '';
+  document.getElementById('pTrackUrl').value = p ? (p.tracking_url||'') : '';
+  document.getElementById('pNotes').value = p ? (p.notes||'') : '';
+  document.getElementById('bomRows').innerHTML = '';
+  (p ? (p.bom||[]) : []).forEach(b=>PD.addBomRow(b));
+  if(!p) PD.addBomRow();
+  renderModalThumbs();
+  document.getElementById('pErr').textContent = '';
+  document.getElementById('planModal').classList.add('show');
+};
+PD.closeModal = function(){ document.getElementById('planModal').classList.remove('show'); };
+document.getElementById('btnAddPlan').onclick = ()=>PD.openModal(null);
+
+PD.addBomRow = function(b){
+  b = b || {};
+  const wrap = document.getElementById('bomRows');
+  const div = document.createElement('div');
+  div.className = 'bomRow';
+  div.innerHTML = `
+    <input type="text" class="bItem" placeholder="Item (e.g. RPi 5, 5m shielded cable)" value="${esc(b.item||'')}">
+    <input type="number" class="bQty" placeholder="Qty" min="0" value="${esc(b.qty!=null?b.qty:'')}">
+    <input type="text" class="bUnit" placeholder="Unit" value="${esc(b.unit||'nos')}">
+    <select class="bStatus">
+      <option value="pending" ${(!b.status||b.status==='pending')?'selected':''}>Pending</option>
+      <option value="shipped" ${b.status==='shipped'?'selected':''}>Shipped</option>
+      <option value="shortage" ${b.status==='shortage'?'selected':''}>Shortage</option>
+    </select>
+    <input type="text" class="bNote" placeholder="Note" value="${esc(b.note||'')}">
+    <button class="btn danger sm" onclick="this.parentElement.remove()">×</button>`;
+  wrap.appendChild(div);
+};
+
+async function compressImage(file){
+  const maxDim = 1600, quality = 0.72;
+  const dataUrl = await new Promise((res,rej)=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+  const img = await new Promise((res,rej)=>{ const im = new Image(); im.onload = ()=>res(im); im.onerror = rej; im.src = dataUrl; });
+  let { width, height } = img;
+  if(width > maxDim || height > maxDim){
+    if(width > height){ height = Math.round(height * maxDim / width); width = maxDim; }
+    else { width = Math.round(width * maxDim / height); height = maxDim; }
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+document.getElementById('pImages').addEventListener('change', async function(e){
+  const files = Array.from(e.target.files||[]);
+  for(const f of files){ try{ PD.pendingImages.push(await compressImage(f)); }catch(err){} }
+  renderModalThumbs(); e.target.value = '';
+});
+function renderModalThumbs(){
+  const ex = PD.existingImages.map((u,i)=>`<div class="thumb"><img src="${u}"><button class="rm" onclick="PD.rmExisting(${i})">&times;</button></div>`).join('');
+  const nw = PD.pendingImages.map((d,i)=>`<div class="thumb"><img src="${d}"><button class="rm" onclick="PD.rmPending(${i})">&times;</button></div>`).join('');
+  document.getElementById('pThumbs').innerHTML = ex + nw;
+}
+PD.rmExisting = function(i){ PD.existingImages.splice(i,1); renderModalThumbs(); };
+PD.rmPending = function(i){ PD.pendingImages.splice(i,1); renderModalThumbs(); };
+
+async function uploadImage(dataUrl, folder, idx){
+  const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+  if(!match) return null;
+  const mime = match[1]; const ext = mime === 'jpeg' ? 'jpg' : mime;
+  const binStr = atob(match[2]);
+  const bytes = new Uint8Array(binStr.length);
+  for(let i=0;i<binStr.length;i++) bytes[i] = binStr.charCodeAt(i);
+  const path = `${folder}/img_${Date.now()}_${idx}.${ext}`;
+  const res = await fetch(`${SUPA_URL}/storage/v1/object/photos/${path}`, {
+    method:'POST', headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': `image/${mime}` }, body: bytes
+  });
+  if(!res.ok) throw new Error('Photo upload failed');
+  return `${SUPA_URL}/storage/v1/object/public/photos/${path}`;
+}
+
+document.getElementById('pSaveBtn').onclick = async function(){
+  const errEl = document.getElementById('pErr');
+  const title = document.getElementById('pTitle').value.trim();
+  const millId = document.getElementById('pMill').value;
+  if(!title){ errEl.textContent = 'Plan title is required.'; return; }
+  if(!millId){ errEl.textContent = 'Pick a mill (add mills from the Mill Updates page first).'; return; }
+  const bom = Array.from(document.querySelectorAll('#bomRows .bomRow')).map(r=>({
+    item: r.querySelector('.bItem').value.trim(),
+    qty: parseFloat(r.querySelector('.bQty').value) || 0,
+    unit: r.querySelector('.bUnit').value.trim(),
+    status: r.querySelector('.bStatus').value,
+    note: r.querySelector('.bNote').value.trim()
+  })).filter(b=>b.item);
+  const btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving...';
+  try{
+    const urls = PD.existingImages.slice();
+    for(let i=0;i<PD.pendingImages.length;i++){
+      urls.push(await uploadImage(PD.pendingImages[i], `production/${millId}`, i));
+    }
+    const body = {
+      mill_id: millId, title,
+      status: document.getElementById('pStatus').value,
+      planned_date: document.getElementById('pPlanned').value || null,
+      dispatch_date: document.getElementById('pDispatch').value || null,
+      courier_name: document.getElementById('pCourier').value.trim() || null,
+      tracking_no: document.getElementById('pTrackNo').value.trim() || null,
+      tracking_url: document.getElementById('pTrackUrl').value.trim() || null,
+      bom, images: urls,
+      notes: document.getElementById('pNotes').value.trim() || null
+    };
+    let res;
+    if(PD.editingId){
+      res = await fetch(`${SUPA_URL}/rest/v1/production_dispatch?id=eq.${PD.editingId}`, { method:'PATCH', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+    } else {
+      body.created_by = ME.id; body.created_by_name = ME.name;
+      res = await fetch(`${SUPA_URL}/rest/v1/production_dispatch`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+    }
+    const data = await res.json();
+    if(!res.ok) throw new Error((data && (data.message||data.error)) || 'Save failed. If it mentions a missing table, run mill-updates-v2.sql in Supabase.');
+    if(PD.editingId){ const i = PD.plans.findIndex(x=>x.id===PD.editingId); PD.plans[i] = data[0]; }
+    else PD.plans.unshift(data[0]);
+    PD.closeModal(); PD.render();
+  }catch(e){ errEl.textContent = e.message; }
+  finally{ btn.disabled = false; btn.textContent = 'Save Plan'; }
+};
+
+PD.deletePlan = async function(id){
+  if(!confirm('Delete this production plan?')) return;
+  const res = await fetch(`${SUPA_URL}/rest/v1/production_dispatch?id=eq.${id}`, { method:'DELETE', headers: supaHeaders() });
+  if(res.ok){ PD.plans = PD.plans.filter(x=>x.id!==id); PD.render(); }
+  else alert('Could not delete — permission?');
+};
+
+// ---------------- Exports ----------------
+function visiblePlans(){
+  const millF = document.getElementById('millFilter').value;
+  const statusF = document.getElementById('statusFilter').value;
+  const shortOnly = document.getElementById('shortageOnly').checked;
+  let plans = PD.plans;
+  if(millF) plans = plans.filter(p=>p.mill_id===millF);
+  if(statusF) plans = plans.filter(p=>p.status===statusF);
+  if(shortOnly) plans = plans.filter(p=>(p.bom||[]).some(b=>b.status==='shortage'));
+  return plans;
+}
+PD.exportExcel = function(){
+  const plans = visiblePlans();
+  const wb = XLSX.utils.book_new();
+  const planRows = plans.map(p=>({
+    Mill: millName(p.mill_id), Plan: p.title, Status: STATUS_LABELS[p.status]||p.status,
+    'Planned Date': p.planned_date||'', 'Dispatch Date': p.dispatch_date||'',
+    Courier: p.courier_name||'', 'Tracking No': p.tracking_no||'', 'Tracking URL': p.tracking_url||'',
+    'BOM Lines': (p.bom||[]).length, 'Shortages': (p.bom||[]).filter(b=>b.status==='shortage').length,
+    Notes: p.notes||'', 'Created By': p.created_by_name||'', Created: String(p.created_at).slice(0,10)
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(planRows), 'Plans');
+  const bomRows = plans.flatMap(p=>(p.bom||[]).map(b=>({
+    Mill: millName(p.mill_id), Plan: p.title, Item: b.item, Qty: b.qty, Unit: b.unit||'', Status: b.status||'pending', Note: b.note||''
+  })));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bomRows), 'BOM Items');
+  const shortRows = bomRows.filter(r=>r.Status==='shortage');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(shortRows), 'Shortages');
+  XLSX.writeFile(wb, `KnitI_Production_Dispatch_${todayStr()}.xlsx`);
+};
+PD.exportPdf = function(){
+  const plans = visiblePlans();
+  const win = window.open('', '_blank');
+  const html = plans.map(p=>{
+    const bom = p.bom||[];
+    return `<div style="page-break-inside:avoid;margin-bottom:22px;">
+      <h2 style="margin-bottom:2px;">${esc(p.title)} — ${esc(millName(p.mill_id))} <span style="font-size:12px;color:#555;">[${STATUS_LABELS[p.status]||p.status}]</span></h2>
+      <p style="font-size:12px;color:#555;margin-top:0;">Planned: ${fmtDate(p.planned_date)} • Dispatch: ${fmtDate(p.dispatch_date)} ${p.courier_name?('• '+esc(p.courier_name)):''} ${p.tracking_no?('• Tracking: '+esc(p.tracking_no)):''}</p>
+      ${p.notes?`<p style="font-size:12px;">${esc(p.notes)}</p>`:''}
+      ${bom.length?`<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:11.5px;">
+        <tr style="background:#eee;"><th>Item</th><th>Qty</th><th>Status</th><th>Note</th></tr>
+        ${bom.map(b=>`<tr><td>${esc(b.item)}</td><td>${esc(b.qty)} ${esc(b.unit||'')}</td><td>${esc(b.status||'pending')}</td><td>${esc(b.note||'')}</td></tr>`).join('')}
+      </table>`:''}
+    </div>`;
+  }).join('') || '<p>No plans in current filter.</p>';
+  win.document.write(`<html><head><title>Production & Dispatch</title></head><body style="font-family:sans-serif;color:#1B2229;"><h1>Knit-I — Production &amp; Dispatch</h1>${html}</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(), 400);
+};
+
+})();
+</script>
+</body>
+</html>

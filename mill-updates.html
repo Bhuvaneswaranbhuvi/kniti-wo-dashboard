@@ -16,36 +16,35 @@
   header{background:var(--navy);color:#fff;padding:18px 24px;position:relative;}
   header h1{margin:0;font-size:18px;}
   header .sub{color:#B9C6CF;font-size:12.5px;margin-top:3px;}
-  header a.back{color:#DCE7ED;text-decoration:none;font-size:12.5px;}
-  header a.back:hover{text-decoration:underline;}
-  .wrap{max-width:1200px;margin:0 auto;padding:20px;}
+  header a{color:#DCE7ED;text-decoration:none;font-size:12.5px;}
+  header a:hover{text-decoration:underline;}
+  .wrap{max-width:1240px;margin:0 auto;padding:20px;}
   .btn{padding:9px 16px;border:none;border-radius:7px;background:var(--navy);color:#fff;font-size:13px;cursor:pointer;font-weight:600;}
   .btn.ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
   .btn.amber{background:var(--amber-dark);}
   .btn.danger{background:var(--danger);}
+  .btn.sm{font-size:11px;padding:5px 9px;}
   .btn:disabled{opacity:.5;cursor:not-allowed;}
   input,select,textarea{padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff;font-family:inherit;color:var(--ink);}
   textarea{width:100%;resize:vertical;}
   label.f{display:block;font-size:12px;font-weight:600;color:var(--ink);margin:10px 0 4px;}
-  label.f:first-child{margin-top:0;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
   .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
   .card + .card{margin-top:14px;}
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
   .row.between{justify-content:space-between;}
   .chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700;text-transform:uppercase;}
   .chip.open{background:#FCEED4;color:#8A5A17;}
-  .chip.in_progress{background:#E4EEF3;color:var(--steel);}
-  .chip.done{background:#DCEFE1;color:#2C6B3F;}
+  .chip.in_progress,.chip.in_production{background:#E4EEF3;color:var(--steel);}
+  .chip.done,.chip.completed,.chip.delivered,.chip.shipped{background:#DCEFE1;color:#2C6B3F;}
   .chip.low{background:#E9ECEC;color:#5B6570;}
-  .chip.normal{background:#E4EEF3;color:var(--steel);}
+  .chip.normal,.chip.scheduled,.chip.planned,.chip.pending{background:#E4EEF3;color:var(--steel);}
   .chip.high{background:#FCEED4;color:#8A5A17;}
-  .chip.urgent{background:#F3DCDC;color:#8A2C2C;}
-  .chip.completed{background:#DCEFE1;color:#2C6B3F;}
-  .chip.scheduled{background:#E4EEF3;color:var(--steel);}
-  .chip.cancelled{background:#F3DCDC;color:#8A2C2C;}
+  .chip.urgent,.chip.cancelled,.chip.shortage{background:#F3DCDC;color:#8A2C2C;}
+  .chip.ready,.chip.dispatched{background:#FCEED4;color:#8A5A17;}
   .layout{display:grid;grid-template-columns:280px 1fr;gap:18px;margin-top:16px;align-items:start;}
-  @media (max-width:860px){ .layout{grid-template-columns:1fr;} .grid2{grid-template-columns:1fr;} }
+  @media (max-width:860px){ .layout{grid-template-columns:1fr;} .grid2,.grid3{grid-template-columns:1fr;} }
   .millList{list-style:none;margin:0;padding:0;max-height:65vh;overflow:auto;}
   .millList li{padding:10px 12px;border-radius:7px;cursor:pointer;font-size:13.5px;margin-bottom:3px;border:1px solid transparent;}
   .millList li:hover{background:var(--steel-light);}
@@ -67,17 +66,17 @@
   .entry .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
   .entry .imgs img{width:64px;height:64px;object-fit:cover;border-radius:5px;border:1px solid var(--line);cursor:zoom-in;}
   .entry .actions{display:flex;gap:6px;margin-top:8px;}
-  .entry .actions button{font-size:11px;padding:5px 9px;}
   table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid var(--line);}
-  th,td{padding:9px 11px;text-align:left;font-size:12.5px;border-bottom:1px solid var(--line);}
+  th,td{padding:9px 11px;text-align:left;font-size:12.5px;border-bottom:1px solid var(--line);vertical-align:top;}
   th{background:var(--steel-light);color:var(--navy);text-transform:uppercase;font-size:10px;letter-spacing:.04em;}
   tr:last-child td{border-bottom:none;}
   .empty{padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;}
   .modal-overlay{position:fixed;inset:0;background:rgba(10,14,18,.6);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 16px;z-index:150;}
   .modal-overlay.show{display:flex;}
   .modal-box{background:#fff;border-radius:10px;max-width:560px;width:100%;padding:22px;position:relative;}
-  .modal-box.wide{max-width:900px;}
+  .modal-box.wide{max-width:940px;}
   .modal-box h2{margin-top:0;font-size:17px;}
+  .modal-box h4{margin:16px 0 4px;font-size:13px;color:var(--steel);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--line);padding-bottom:4px;}
   .modal-box .closeBtn{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft);}
   .thumbRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
   .thumbRow .thumb{position:relative;width:64px;height:64px;}
@@ -91,21 +90,21 @@
   #notSignedIn{max-width:480px;margin:80px auto;text-align:center;}
   .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--steel);border-radius:50%;animation:spin .7s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
-  .mapRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:6px;}
+  .camRow{display:grid;grid-template-columns:70px 1fr 1fr;gap:8px;align-items:center;margin-bottom:6px;}
+  .camRow .camLbl{font-size:12px;font-weight:700;color:var(--steel);}
   .progressBar{background:var(--line);border-radius:6px;height:8px;overflow:hidden;margin-top:8px;}
   .progressBar > div{background:var(--steel);height:100%;}
-  @media print{
-    header,.no-print{display:none!important;}
-    body{background:#fff;}
-    .wrap{max-width:100%;padding:0;}
-  }
+  .autoNote{border-left:3px solid var(--steel);background:#F4F8FA;padding:10px 12px;border-radius:0 8px 8px 0;margin-bottom:10px;font-size:12.5px;}
+  .autoNote .nm{font-weight:700;}
+  .autoNote .tlog{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:4px;white-space:pre-wrap;}
+  @media print{ header,.no-print{display:none!important;} body{background:#fff;} .wrap{max-width:100%;padding:0;} }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Knit-I — Mill-wise Updates</h1>
-  <div class="sub"><a class="back" href="index.html">&larr; Back to Dashboard</a> &nbsp;•&nbsp; <span id="whoami"></span></div>
+  <div class="sub"><a href="index.html">&larr; Dashboard</a> &nbsp;•&nbsp; <a href="production.html">🏗️ Production &amp; Dispatch</a> &nbsp;•&nbsp; <span id="whoami"></span></div>
 </header>
 
 <div id="notSignedIn" style="display:none;">
@@ -120,10 +119,10 @@
     <div class="row">
       <button class="btn amber" id="btnAddMill">+ Add Mill</button>
       <button class="btn ghost" id="btnImportExcel">⇪ Import from Excel</button>
+      <button class="btn ghost" id="btnTemplate">📄 Download Import Template</button>
     </div>
     <div class="row">
-      <button class="btn ghost" id="btnExportExcel">⬇ Export Excel</button>
-      <button class="btn ghost" id="btnExportPdf">🖨️ Export / Print PDF</button>
+      <button class="btn ghost" id="btnExport">⬇ Export…</button>
     </div>
   </div>
 
@@ -132,7 +131,6 @@
       <input type="text" class="searchBox" id="millSearch" placeholder="Search mills...">
       <ul class="millList" id="millList"></ul>
     </div>
-
     <div id="millDetail">
       <div class="empty">Select a mill on the left, or add a new one, to get started.</div>
     </div>
@@ -154,7 +152,7 @@
     <input type="text" id="mAddress" style="width:100%;">
     <label class="f">Contact Person</label>
     <input type="text" id="mContact" style="width:100%;">
-    <label class="f">Also known as (comma-separated — helps match this mill's existing Work Orders if the name was typed differently)</label>
+    <label class="f">Also known as (comma-separated — helps match Work Orders typed with a different name)</label>
     <input type="text" id="mAliases" style="width:100%;" placeholder="e.g. JJ Mills, Jay Jay Textiles">
     <div class="err" id="mErr"></div>
     <div class="row" style="margin-top:14px;">
@@ -164,27 +162,47 @@
   </div>
 </div>
 
-<!-- ===== Add / Edit Machine Modal ===== -->
+<!-- ===== Add / Edit Machine Modal (Knit-I profile) ===== -->
 <div class="modal-overlay" id="machineModal">
-  <div class="modal-box">
+  <div class="modal-box wide">
     <button class="closeBtn" onclick="MU.closeModal('machineModal')">&times;</button>
     <h2 id="machineModalTitle">Add Machine</h2>
-    <div class="grid2">
+
+    <h4>Knitting Machine</h4>
+    <div class="grid3">
       <div><label class="f">Machine No / Tag *</label><input type="text" id="knNo" style="width:100%;" placeholder="e.g. KM-04"></div>
       <div><label class="f">Machine Type</label><input type="text" id="knType" style="width:100%;" placeholder="e.g. Single Jersey"></div>
-    </div>
-    <div class="grid2">
       <div><label class="f">Brand</label><input type="text" id="knBrand" style="width:100%;"></div>
       <div><label class="f">Model</label><input type="text" id="knModel" style="width:100%;"></div>
-    </div>
-    <div class="grid2">
-      <div><label class="f">Serial No</label><input type="text" id="knSerial" style="width:100%;"></div>
-      <div><label class="f">Install Date</label><input type="date" id="knInstall" style="width:100%;"></div>
-    </div>
-    <div class="grid2">
+      <div><label class="f">Machine Serial No</label><input type="text" id="knSerial" style="width:100%;"></div>
+      <div><label class="f">Date of Installation</label><input type="date" id="knInstall" style="width:100%;"></div>
       <div><label class="f">Gauge</label><input type="text" id="knGauge" style="width:100%;"></div>
       <div><label class="f">Diameter</label><input type="text" id="knDia" style="width:100%;"></div>
     </div>
+
+    <h4>Knit-I System</h4>
+    <div class="grid3">
+      <div><label class="f">Cabinet Serial No</label><input type="text" id="kiCabinet" style="width:100%;"></div>
+      <div><label class="f">Knit-I Version</label><select id="kiVersion" style="width:100%;"></select></div>
+      <div><label class="f">Internet Connect Component</label><select id="kiInternet" style="width:100%;"></select></div>
+      <div><label class="f">Processing Unit</label><select id="kiProcessing" style="width:100%;"></select></div>
+      <div><label class="f">Storage</label><select id="kiStorageType" style="width:100%;"></select></div>
+      <div><label class="f">Storage Capacity</label><select id="kiStorageCap" style="width:100%;"></select></div>
+      <div><label class="f">Display</label><select id="kiDisplay" style="width:100%;"></select></div>
+      <div><label class="f">Display Size</label><select id="kiDisplaySize" style="width:100%;"></select></div>
+      <div><label class="f">Wiper Installed</label>
+        <select id="kiWiper" style="width:100%;"><option value="">—</option><option value="true">Yes</option><option value="false">No</option></select>
+      </div>
+      <div><label class="f">Tailscale IP</label><input type="text" id="kiTailscale" style="width:100%;" placeholder="100.x.x.x"></div>
+      <div><label class="f">Internet IP (if available)</label><input type="text" id="kiInternetIp" style="width:100%;"></div>
+    </div>
+
+    <h4>Cameras</h4>
+    <div class="grid3">
+      <div><label class="f">No. of Cameras</label><input type="number" id="kiNumCams" min="0" max="12" style="width:100%;" value="1"></div>
+    </div>
+    <div id="camRows" style="margin-top:8px;"></div>
+
     <label class="f">Notes</label>
     <textarea id="knNotes" rows="2"></textarea>
     <div class="err" id="knErr"></div>
@@ -195,7 +213,7 @@
   </div>
 </div>
 
-<!-- ===== Add Entry Modal (to-do / pain point / suggestion / requirement / visit log) ===== -->
+<!-- ===== Add Entry Modal ===== -->
 <div class="modal-overlay" id="entryModal">
   <div class="modal-box">
     <button class="closeBtn" onclick="MU.closeModal('entryModal')">&times;</button>
@@ -209,17 +227,13 @@
     <div class="grid2" id="ePriorityRow">
       <div><label class="f">Priority</label>
         <select id="ePriority" style="width:100%;">
-          <option value="low">Low</option>
-          <option value="normal" selected>Normal</option>
-          <option value="high">High</option>
-          <option value="urgent">Urgent</option>
+          <option value="low">Low</option><option value="normal" selected>Normal</option>
+          <option value="high">High</option><option value="urgent">Urgent</option>
         </select>
       </div>
       <div id="eStatusWrap"><label class="f">Status</label>
         <select id="eStatus" style="width:100%;">
-          <option value="open" selected>Open</option>
-          <option value="in_progress">In Progress</option>
-          <option value="done">Done</option>
+          <option value="open" selected>Open</option><option value="in_progress">In Progress</option><option value="done">Done</option>
         </select>
       </div>
     </div>
@@ -238,23 +252,59 @@
   </div>
 </div>
 
-<!-- ===== Import Excel Modal ===== -->
+<!-- ===== Export Modal ===== -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal-box">
+    <button class="closeBtn" onclick="MU.closeModal('exportModal')">&times;</button>
+    <h2>Export</h2>
+    <label class="f">Which mills?</label>
+    <select id="xScope" style="width:100%;" onchange="document.getElementById('xMillPick').style.display = this.value==='choose' ? '' : 'none';">
+      <option value="all">All mills</option>
+      <option value="current">Current mill only</option>
+      <option value="choose">Choose mills…</option>
+    </select>
+    <select id="xMillPick" multiple size="6" style="width:100%;display:none;margin-top:8px;"></select>
+    <label class="f">What data?</label>
+    <select id="xData" style="width:100%;">
+      <option value="everything">Everything (full report)</option>
+      <option value="pain_point">Customer Pain Points only</option>
+      <option value="requirement">Customer Requirements only</option>
+      <option value="todo">To-Dos only</option>
+      <option value="suggestion">Engineer Suggestions only</option>
+      <option value="visit_log">Visit Logs only</option>
+      <option value="machines">Machines only</option>
+      <option value="production">Production &amp; Dispatch only</option>
+    </select>
+    <div class="grid2">
+      <div><label class="f">From date (optional)</label><input type="date" id="xFrom" style="width:100%;"></div>
+      <div><label class="f">To date (optional)</label><input type="date" id="xTo" style="width:100%;"></div>
+    </div>
+    <div class="err" id="xErr"></div>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" onclick="MU.doExport('excel')">⬇ Excel</button>
+      <button class="btn ghost" onclick="MU.doExport('pdf')">🖨️ PDF / Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Import Modal ===== -->
 <div class="modal-overlay" id="importModal">
   <div class="modal-box wide">
     <button class="closeBtn" onclick="MU.closeModal('importModal')">&times;</button>
-    <h2>Import Mills &amp; Machines from Excel</h2>
-    <p class="sub">Upload a workbook with one row per machine (or per mill, if you just want the mill list). We'll try to guess which column is which — check the mapping below before importing.</p>
+    <h2>Import Mills, Machines &amp; Updates from Excel</h2>
+    <p class="sub">Best: use the <b>Import Template</b> (button on the main page) — sheets "Mills &amp; Machines" and "Updates" are then imported automatically with all Knit-I fields. Any other Excel also works: we'll guess the columns and let you correct the mapping below.</p>
     <input type="file" id="importFile" accept=".xlsx,.xls,.csv">
     <div id="importPreviewWrap" style="display:none;margin-top:14px;">
-      <div class="grid2" id="importMapGrid" style="grid-template-columns:repeat(3,1fr);"></div>
-      <div style="overflow:auto;max-height:260px;margin-top:12px;border:1px solid var(--line);border-radius:8px;">
+      <p class="sub" id="importModeNote"></p>
+      <div class="grid3" id="importMapGrid"></div>
+      <div style="overflow:auto;max-height:240px;margin-top:12px;border:1px solid var(--line);border-radius:8px;">
         <table id="importPreviewTable"></table>
       </div>
       <p class="sub" id="importCount" style="margin-top:8px;"></p>
       <div class="progressBar" id="importProgressWrap" style="display:none;"><div id="importProgressBar" style="width:0%;"></div></div>
       <div class="err" id="importErr"></div>
       <div class="row" style="margin-top:14px;">
-        <button class="btn" id="importGoBtn">Import Rows</button>
+        <button class="btn" id="importGoBtn">Import</button>
         <button class="btn ghost" onclick="MU.closeModal('importModal')">Cancel</button>
       </div>
     </div>
@@ -267,9 +317,7 @@
 (function(){
 
 // ============================================================
-// Session — shared with index.html via the same localStorage keys.
-// No login form here on purpose: sign in from the main dashboard once,
-// then this page and index.html both read the same session.
+// Session — shared with index.html via the same localStorage keys
 // ============================================================
 const DEFAULT_SUPABASE_URL = 'https://ipvgfjkyykhozomwwrfj.supabase.co';
 const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwdmdmamt5eWtob3pvbXd3cmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjEwNzksImV4cCI6MjA5OTQ5NzA3OX0.wcRicTYWzDI7X381GNirTUcPHTq4lfQSqeVeH5u5GyE';
@@ -287,13 +335,11 @@ const ME = {
 function supaHeaders(extra){
   return Object.assign({ 'apikey': SUPA_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' }, extra || {});
 }
-
 async function ensureFreshToken(){
   try{
-    const part = AUTH_TOKEN.split('.')[1];
-    const payload = JSON.parse(atob(part.replace(/-/g,'+').replace(/_/g,'/')));
-    if(!payload.exp || (payload.exp*1000) > (Date.now()+120000)) return true;
-  }catch(e){ return true; }
+    const payload = JSON.parse(atob(AUTH_TOKEN.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if(!payload.exp || (payload.exp*1000) > (Date.now()+120000)) return;
+  }catch(e){ return; }
   try{
     const res = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`, {
       method:'POST', headers:{ 'apikey':SUPA_KEY, 'Content-Type':'application/json' },
@@ -306,10 +352,9 @@ async function ensureFreshToken(){
       if(data.refresh_token) localStorage.setItem('session:refreshToken', data.refresh_token);
     }
   }catch(e){}
-  return true;
 }
 
-if(!SUPA_URL || !SUPA_KEY || !AUTH_TOKEN || !ME.id){
+if(!AUTH_TOKEN || !ME.id){
   document.getElementById('notSignedIn').style.display = '';
 } else {
   document.getElementById('app').style.display = '';
@@ -318,13 +363,32 @@ if(!SUPA_URL || !SUPA_KEY || !AUTH_TOKEN || !ME.id){
 }
 
 // ============================================================
-// State
+// Constants
 // ============================================================
+const OPTS = {
+  version: ['V11','V10','Supernova Single','Supernova Double','Super2Nova','Super3Nova','Intel'],
+  internet: ['UGREEN Ethernet Adapter','Bestor Ethernet Adapter','UGREEN Hub + Ethernet Adapter'],
+  processing: ['RPi 5','ASUS Prime H510M-E R2','ASUS Strix B760I'],
+  storageType: ['SD Card','SSD NVMe'],
+  storageCap: ['128GB','256GB','512GB','1TB','2TB'],
+  display: ['12V Monitor','12V Tab','230V Tab'],
+  displaySize: ['3\u2033','5\u2033','7\u2033','10\u2033'],
+  cable: ['LAN','5m Shielded','3m Shielded','5m - NTech','2m - NTech']
+};
+const CATEGORY_LABELS = {
+  todo: 'To-Dos', pain_point: 'Customer Pain Points', suggestion: 'Engineer Suggestions',
+  requirement: 'Customer Requirements', visit_log: 'Visit Logs & Reports'
+};
+const TABS = ['todo','pain_point','suggestion','requirement','visit_log','work_orders','production','machines'];
+const TAB_LABELS = Object.assign({}, CATEGORY_LABELS, { work_orders: 'Work Orders', production: 'Production & Dispatch', machines: 'Machines' });
+const PROD_STATUS_LABELS = { planned:'Planned', in_production:'In Production', ready:'Ready', dispatched:'Dispatched', delivered:'Delivered' };
+
 const MU = window.MU = {
-  mills: [], machines: [], updates: [], orders: [], assignments: [],
+  mills: [], machines: [], updates: [], orders: [], assignments: [], production: [],
   currentMillId: null, currentTab: 'todo',
-  pendingImages: [], // {dataUrl, file} staged in the entry modal before upload
+  pendingImages: [], pendingCategory: null,
   editingEntryId: null, editingMillId: null, editingMachineId: null,
+  orderNotesCache: {},   // orderId -> extracted notes
   closeModal(id){ document.getElementById(id).classList.remove('show'); }
 };
 
@@ -332,49 +396,52 @@ function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&am
 function fmtDate(s){ if(!s) return '—'; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}); }
 function normName(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
-
-const CATEGORY_LABELS = {
-  todo: 'To-Dos', pain_point: 'Customer Pain Points', suggestion: 'Engineer Suggestions',
-  requirement: 'Customer Requirements', visit_log: 'Visit Logs & Reports'
-};
-const TABS = ['todo','pain_point','suggestion','requirement','visit_log','work_orders','machines'];
-const TAB_LABELS = Object.assign({}, CATEGORY_LABELS, { work_orders: 'Work Orders', machines: 'Machines' });
+function optHtml(list, selected){
+  return `<option value="">—</option>` + list.map(o=>`<option value="${esc(o)}" ${o===selected?'selected':''}>${esc(o)}</option>`).join('');
+}
+function inRange(dateStr, from, to){
+  if(!dateStr) return true;
+  const d = String(dateStr).slice(0,10);
+  if(from && d < from) return false;
+  if(to && d > to) return false;
+  return true;
+}
 
 // ============================================================
-// Boot
+// Boot + loads
 // ============================================================
 async function boot(){
   await ensureFreshToken();
-  await Promise.all([loadMills(), loadMachines(), loadUpdates(), loadOrders(), loadAssignments()]);
+  await Promise.all([loadMills(), loadMachines(), loadUpdates(), loadOrders(), loadAssignments(), loadProduction()]);
   renderMillList();
-  wireGlobalButtons();
 }
-
 async function loadMills(){
-  const res = await fetch(`${SUPA_URL}/rest/v1/mills?select=*&order=name.asc`, { headers: supaHeaders() });
-  MU.mills = res.ok ? await res.json() : [];
+  const r = await fetch(`${SUPA_URL}/rest/v1/mills?select=*&order=name.asc`, { headers: supaHeaders() });
+  MU.mills = r.ok ? await r.json() : [];
 }
 async function loadMachines(){
-  const res = await fetch(`${SUPA_URL}/rest/v1/machines?select=*&order=machine_no.asc`, { headers: supaHeaders() });
-  MU.machines = res.ok ? await res.json() : [];
+  const r = await fetch(`${SUPA_URL}/rest/v1/machines?select=*&order=machine_no.asc`, { headers: supaHeaders() });
+  MU.machines = r.ok ? await r.json() : [];
 }
 async function loadUpdates(){
-  const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates?select=*&order=created_at.desc`, { headers: supaHeaders() });
-  MU.updates = res.ok ? await res.json() : [];
+  const r = await fetch(`${SUPA_URL}/rest/v1/mill_updates?select=*&order=created_at.desc`, { headers: supaHeaders() });
+  MU.updates = r.ok ? await r.json() : [];
 }
 async function loadOrders(){
-  const res = await fetch(`${SUPA_URL}/rest/v1/orders?select=id,order_type,wo_number,customer,location,engineer,machine_count,csat_rating,created_at`, { headers: supaHeaders() });
-  MU.orders = res.ok ? await res.json() : [];
+  const r = await fetch(`${SUPA_URL}/rest/v1/orders?select=id,order_type,wo_number,customer,location,engineer,machine_count,csat_rating,created_at`, { headers: supaHeaders() });
+  MU.orders = r.ok ? await r.json() : [];
 }
 async function loadAssignments(){
-  const res = await fetch(`${SUPA_URL}/rest/v1/assignments?select=id,order_type,engineer,customer,location,scheduled_date,notes,status,created_at`, { headers: supaHeaders() });
-  MU.assignments = res.ok ? await res.json() : [];
+  const r = await fetch(`${SUPA_URL}/rest/v1/assignments?select=id,order_type,engineer,customer,location,scheduled_date,notes,status,created_at`, { headers: supaHeaders() });
+  MU.assignments = r.ok ? await r.json() : [];
+}
+async function loadProduction(){
+  const r = await fetch(`${SUPA_URL}/rest/v1/production_dispatch?select=*&order=created_at.desc`, { headers: supaHeaders() });
+  MU.production = r.ok ? await r.json() : [];
 }
 
 // ============================================================
-// Mill <-> Work Order matching (orders/assignments store customer as free
-// text, so match by name or by the mill's alias list; substring fallback
-// catches things like "Jay Jay Mills" vs alias "Jay Jay")
+// Mill <-> WO matching
 // ============================================================
 function millMatchesText(mill, text){
   const t = normName(text);
@@ -384,9 +451,10 @@ function millMatchesText(mill, text){
 }
 function ordersForMill(mill){ return MU.orders.filter(o => millMatchesText(mill, o.customer)); }
 function assignmentsForMill(mill){ return MU.assignments.filter(a => millMatchesText(mill, a.customer)); }
+function productionForMill(mill){ return MU.production.filter(p => p.mill_id === mill.id); }
 
 // ============================================================
-// Mill list (left panel)
+// Left panel
 // ============================================================
 function renderMillList(){
   const q = normName(document.getElementById('millSearch').value);
@@ -395,44 +463,38 @@ function renderMillList(){
   if(!list.length){ ul.innerHTML = `<div class="empty">No mills yet. Click "+ Add Mill" to create one.</div>`; return; }
   ul.innerHTML = list.map(m => `
     <li class="${m.id===MU.currentMillId?'active':''}" onclick="MU.selectMill('${m.id}')">
-      ${esc(m.name)}
-      <span class="area">${esc(m.area||'')}</span>
+      ${esc(m.name)}<span class="area">${esc(m.area||'')}</span>
     </li>`).join('');
 }
 document.getElementById('millSearch').addEventListener('input', renderMillList);
-
 MU.selectMill = function(id){
-  MU.currentMillId = id;
-  MU.currentTab = 'todo';
-  renderMillList();
-  renderMillDetail();
+  MU.currentMillId = id; MU.currentTab = 'todo'; window.__entryFilter = '';
+  renderMillList(); renderMillDetail();
 };
 
 // ============================================================
-// Mill detail (right panel): summary + tabs
+// Mill detail
 // ============================================================
 function renderMillDetail(){
   const mill = MU.mills.find(m => m.id === MU.currentMillId);
   const box = document.getElementById('millDetail');
   if(!mill){ box.innerHTML = `<div class="empty">Select a mill on the left, or add a new one, to get started.</div>`; return; }
-
   const machines = MU.machines.filter(x => x.mill_id === mill.id);
   const orders = ordersForMill(mill);
   const assignments = assignmentsForMill(mill);
+  const prod = productionForMill(mill);
   const pending = assignments.filter(a => a.status === 'scheduled' || a.status === 'in_progress').length;
-  const completed = orders.length + assignments.filter(a=>a.status==='completed').length;
   const csats = orders.map(o=>o.csat_rating).filter(n=>n>0);
   const avgCsat = csats.length ? (csats.reduce((a,b)=>a+b,0)/csats.length).toFixed(1) : '—';
   const lastDates = [...orders.map(o=>o.created_at), ...assignments.map(a=>a.scheduled_date)].filter(Boolean).sort().reverse();
   const openTodos = MU.updates.filter(u=>u.mill_id===mill.id && u.category==='todo' && u.status!=='done').length;
+  const shortages = prod.reduce((n,p)=>n+((p.bom||[]).filter(b=>b.status==='shortage').length),0);
 
   box.innerHTML = `
     <div class="card">
       <div class="row between">
         <h2 style="margin:0;">${esc(mill.name)}</h2>
-        <div class="row no-print">
-          <button class="btn ghost" onclick="MU.openMillModal('${mill.id}')">Edit Mill</button>
-        </div>
+        <div class="row no-print"><button class="btn ghost" onclick="MU.openMillModal('${mill.id}')">Edit Mill</button></div>
       </div>
       <p class="sub" style="margin:6px 0 0;">${esc(mill.area||'—')} ${mill.address?(' • '+esc(mill.address)):''}${mill.contact_name?(' • Contact: '+esc(mill.contact_name)+(mill.contact_phone?' ('+esc(mill.contact_phone)+')':'')):''}</p>
       <div class="summaryGrid">
@@ -442,19 +504,21 @@ function renderMillDetail(){
         <div class="stat"><b>${avgCsat}</b><span>Avg CSAT</span></div>
         <div class="stat"><b>${lastDates[0]?fmtDate(lastDates[0]):'—'}</b><span>Last Visit</span></div>
         <div class="stat"><b>${openTodos}</b><span>Open To-Dos</span></div>
+        <div class="stat"><b>${prod.length}</b><span>Production Plans</span></div>
+        <div class="stat"><b>${shortages}</b><span>Shortage Items</span></div>
       </div>
     </div>
-
     <div class="tabs no-print">
       ${TABS.map(t => `<button class="tabBtn ${MU.currentTab===t?'active':''}" onclick="MU.switchTab('${t}')">${TAB_LABELS[t]}</button>`).join('')}
     </div>
-
     <div id="tabContent"></div>
   `;
   renderTabContent();
 }
-
-MU.switchTab = function(t){ MU.currentTab = t; renderMillDetail(); };
+MU.switchTab = function(t){ MU.currentTab = t; renderTabContent(); markActiveTab(); };
+function markActiveTab(){
+  document.querySelectorAll('.tabs .tabBtn').forEach((b,i)=>b.classList.toggle('active', TABS[i]===MU.currentTab));
+}
 
 function renderTabContent(){
   const mill = MU.mills.find(m => m.id === MU.currentMillId);
@@ -462,7 +526,9 @@ function renderTabContent(){
   if(!el || !mill) return;
   if(MU.currentTab === 'work_orders'){ el.innerHTML = renderWorkOrdersTab(mill); return; }
   if(MU.currentTab === 'machines'){ el.innerHTML = renderMachinesTab(mill); return; }
+  if(MU.currentTab === 'production'){ el.innerHTML = renderProductionTab(mill); return; }
   el.innerHTML = renderEntriesTab(mill, MU.currentTab);
+  if(MU.currentTab === 'visit_log') loadAutoWONotes(mill);
 }
 
 function machineName(id){
@@ -471,22 +537,25 @@ function machineName(id){
   return m ? (m.machine_no + (m.machine_type?' — '+m.machine_type:'')) : 'Whole mill';
 }
 
+// ============================================================
+// Entry tabs
+// ============================================================
 function renderEntriesTab(mill, category){
   const machines = MU.machines.filter(x=>x.mill_id===mill.id);
   const entries = MU.updates.filter(u=>u.mill_id===mill.id && u.category===category);
-  const machineFilterHtml = `
-    <select id="entryMachineFilter" onchange="MU.filterEntries(this.value)" style="margin-bottom:12px;">
-      <option value="">All machines / mill-wide</option>
-      ${machines.map(m=>`<option value="${m.id}">${esc(m.machine_no)}</option>`).join('')}
-    </select>`;
   const filterVal = window.__entryFilter || '';
   const filtered = filterVal ? entries.filter(e=>e.machine_id===filterVal) : entries;
   const list = filtered.length ? filtered.map(renderEntryCard).join('') : `<div class="empty">Nothing logged yet under ${esc(CATEGORY_LABELS[category])}.</div>`;
+  const autoSection = category === 'visit_log' ? `<div id="autoWONotes"><p class="sub"><span class="spinner"></span> Loading notes from work orders…</p></div>` : '';
   return `
     <div class="row between no-print">
-      ${machineFilterHtml}
+      <select onchange="MU.filterEntries(this.value)" style="margin-bottom:12px;">
+        <option value="">All machines / mill-wide</option>
+        ${machines.map(m=>`<option value="${m.id}" ${filterVal===m.id?'selected':''}>${esc(m.machine_no)}</option>`).join('')}
+      </select>
       <button class="btn" onclick="MU.openEntryModal('${category}')">+ Add ${esc(CATEGORY_LABELS[category].replace(/s$/,''))}</button>
     </div>
+    ${autoSection}
     ${list}
   `;
 }
@@ -511,38 +580,70 @@ function renderEntryCard(e){
       ${e.description ? `<div class="desc">${esc(e.description)}</div>` : ''}
       ${(e.images||[]).length ? `<div class="imgs">${e.images.map(u=>`<img src="${u}" onclick="MU.showLightbox('${u}')">`).join('')}</div>` : ''}
       <div class="actions no-print">
-        ${showStatus && canEdit ? `<button class="btn ghost" onclick="MU.cycleStatus('${e.id}')">Mark ${e.status==='open'?'In Progress':e.status==='in_progress'?'Done':'Open'}</button>` : ''}
-        ${canEdit ? `<button class="btn ghost" onclick="MU.deleteEntry('${e.id}')">Delete</button>` : ''}
+        ${showStatus && canEdit ? `<button class="btn ghost sm" onclick="MU.cycleStatus('${e.id}')">Mark ${e.status==='open'?'In Progress':e.status==='in_progress'?'Done':'Open'}</button>` : ''}
+        ${canEdit ? `<button class="btn ghost sm" onclick="MU.deleteEntry('${e.id}')">Delete</button>` : ''}
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 MU.showLightbox = function(url){
-  const w = document.getElementById('lightboxWrap');
-  w.innerHTML = `<div class="lightbox" onclick="this.remove()"><img src="${url}"></div>`;
+  document.getElementById('lightboxWrap').innerHTML = `<div class="lightbox" onclick="this.remove()"><img src="${url}"></div>`;
 };
-
 MU.cycleStatus = async function(id){
-  const e = MU.updates.find(x=>x.id===id);
-  if(!e) return;
+  const e = MU.updates.find(x=>x.id===id); if(!e) return;
   const next = e.status === 'open' ? 'in_progress' : e.status === 'in_progress' ? 'done' : 'open';
-  const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates?id=eq.${id}`, {
-    method:'PATCH', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify({status:next})
-  });
-  if(res.ok){ e.status = next; renderTabContent(); }
-  else alert('Could not update status — you may not have permission to edit this entry.');
+  const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates?id=eq.${id}`, { method:'PATCH', headers: supaHeaders(), body: JSON.stringify({status:next}) });
+  if(res.ok){ e.status = next; renderTabContent(); } else alert('Could not update status — permission?');
 };
-
 MU.deleteEntry = async function(id){
   if(!confirm('Delete this entry?')) return;
   const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates?id=eq.${id}`, { method:'DELETE', headers: supaHeaders() });
-  if(res.ok){ MU.updates = MU.updates.filter(x=>x.id!==id); renderTabContent(); }
-  else alert('Could not delete — you may not have permission.');
+  if(res.ok){ MU.updates = MU.updates.filter(x=>x.id!==id); renderTabContent(); } else alert('Could not delete — permission?');
 };
 
 // ============================================================
-// Work Orders tab (read-only view of existing orders/assignments)
+// Auto notes from Work Orders (starting/troubleshoot/completion comments)
+// Fetched lazily per mill, only id+data of that mill's recent orders.
+// ============================================================
+async function loadAutoWONotes(mill){
+  const target = document.getElementById('autoWONotes');
+  if(!target) return;
+  const matched = ordersForMill(mill).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,15);
+  if(!matched.length){ target.innerHTML = `<p class="sub">No work orders matched to this mill yet, so no auto notes.</p>`; return; }
+  const need = matched.filter(o => !(o.id in MU.orderNotesCache));
+  if(need.length){
+    const ids = need.map(o=>o.id).join(',');
+    try{
+      const res = await fetch(`${SUPA_URL}/rest/v1/orders?id=in.(${ids})&select=id,data`, { headers: supaHeaders() });
+      const rows = res.ok ? await res.json() : [];
+      rows.forEach(r=>{
+        const d = r.data || {};
+        MU.orderNotesCache[r.id] = {
+          start: d.before && d.before.comments || '',
+          tlog: Array.isArray(d.troubleshoot) ? d.troubleshoot.map(t=>`${t.time||''} — ${t.text||''}`).join('\n') : '',
+          done: d.after && d.after.comments || ''
+        };
+      });
+      matched.forEach(o=>{ if(!(o.id in MU.orderNotesCache)) MU.orderNotesCache[o.id] = {start:'',tlog:'',done:''}; });
+    }catch(e){ target.innerHTML = `<p class="sub">Could not load work order notes.</p>`; return; }
+  }
+  const cards = matched.map(o=>{
+    const n = MU.orderNotesCache[o.id] || {};
+    if(!n.start && !n.tlog && !n.done) return '';
+    return `<div class="autoNote">
+      <div class="nm">Auto from ${esc(o.order_type||'Work Order')} ${esc(o.wo_number||'')} • ${fmtDate(o.created_at)} • ${esc(o.engineer||'')}</div>
+      ${n.start?`<div style="margin-top:4px;"><b>Starting:</b> ${esc(n.start)}</div>`:''}
+      ${n.tlog?`<div class="tlog">${esc(n.tlog)}</div>`:''}
+      ${n.done?`<div style="margin-top:4px;"><b>Completion:</b> ${esc(n.done)}</div>`:''}
+    </div>`;
+  }).filter(Boolean).join('');
+  target.innerHTML = cards
+    ? `<p class="sub" style="margin-bottom:6px;">Notes auto-pulled from this mill's submitted work orders (latest 15):</p>${cards}`
+    : `<p class="sub">Matched work orders had no comments recorded.</p>`;
+}
+
+// ============================================================
+// Work Orders tab
 // ============================================================
 function renderWorkOrdersTab(mill){
   const orders = ordersForMill(mill).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
@@ -552,7 +653,7 @@ function renderWorkOrdersTab(mill){
       <h3 style="margin-top:0;">Completed Work Orders (${orders.length})</h3>
       ${orders.length ? `<table><thead><tr><th>WO #</th><th>Type</th><th>Engineer</th><th>Machines</th><th>CSAT</th><th>Date</th></tr></thead>
       <tbody>${orders.map(o=>`<tr><td>${esc(o.wo_number||'—')}</td><td>${esc(o.order_type||'—')}</td><td>${esc(o.engineer||'—')}</td><td>${o.machine_count||0}</td><td>${o.csat_rating?('★'.repeat(o.csat_rating)):'—'}</td><td>${fmtDate(o.created_at)}</td></tr>`).join('')}</tbody></table>`
-      : `<div class="empty">No completed work orders matched to this mill yet. Full reports are viewable from the main dashboard's Submitted Orders tab (search by mill name).</div>`}
+      : `<div class="empty">No completed work orders matched to this mill yet.</div>`}
     </div>
     <div class="card">
       <h3 style="margin-top:0;">Scheduled / Pending / Assigned (${assignments.length})</h3>
@@ -560,8 +661,39 @@ function renderWorkOrdersTab(mill){
       <tbody>${assignments.map(a=>`<tr><td>${esc(a.order_type||'—')}</td><td>${esc(a.engineer||'—')}</td><td>${fmtDate(a.scheduled_date)}</td><td><span class="chip ${a.status}">${esc(a.status)}</span></td><td>${esc(a.notes||'—')}</td></tr>`).join('')}</tbody></table>`
       : `<div class="empty">No scheduled or pending assignments matched to this mill.</div>`}
     </div>
-    <p class="sub no-print">Matching is by mill name / "also known as" list. If a work order is missing here, add the exact customer name used on that order to this mill's aliases (Edit Mill).</p>
-  `;
+    <p class="sub no-print">Matching is by mill name / aliases. If a WO is missing, add the exact customer name used on that order to this mill's aliases (Edit Mill).</p>`;
+}
+
+// ============================================================
+// Production tab (per mill, read-only summary + link)
+// ============================================================
+function renderProductionTab(mill){
+  const plans = productionForMill(mill);
+  const cards = plans.length ? plans.map(p=>{
+    const bom = p.bom || [];
+    const shipped = bom.filter(b=>b.status==='shipped');
+    const shortage = bom.filter(b=>b.status==='shortage');
+    return `<div class="entry">
+      <div class="top">
+        <div>
+          <div class="title">${esc(p.title)}</div>
+          <div class="meta">Planned: ${fmtDate(p.planned_date)} • Dispatch: ${fmtDate(p.dispatch_date)} ${p.courier_name?('• '+esc(p.courier_name)):''} ${p.tracking_no?('• Tracking: '+esc(p.tracking_no)):''}</div>
+        </div>
+        <span class="chip ${p.status}">${PROD_STATUS_LABELS[p.status]||p.status}</span>
+      </div>
+      ${p.notes?`<div class="desc">${esc(p.notes)}</div>`:''}
+      ${bom.length?`<table style="margin-top:8px;"><thead><tr><th>Item</th><th>Qty</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody>${bom.map(b=>`<tr><td>${esc(b.item)}</td><td>${esc(b.qty)} ${esc(b.unit||'')}</td><td><span class="chip ${esc(b.status||'pending')}">${esc(b.status||'pending')}</span></td><td>${esc(b.note||'')}</td></tr>`).join('')}</tbody></table>`:''}
+      ${shortage.length?`<p class="sub" style="color:var(--danger);margin:8px 0 0;">⚠ ${shortage.length} shortage item(s) on this shipment</p>`:''}
+      ${(p.images||[]).length ? `<div class="imgs" style="margin-top:8px;">${p.images.map(u=>`<img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:5px;border:1px solid var(--line);cursor:zoom-in;" onclick="MU.showLightbox('${u}')">`).join('')}</div>` : ''}
+    </div>`;
+  }).join('') : `<div class="empty">No production plans or dispatches for this mill yet.</div>`;
+  return `
+    <div class="row between no-print" style="margin-bottom:10px;">
+      <span class="sub">Auto-updated from the Production &amp; Dispatch page.</span>
+      <a class="btn" href="production.html?mill=${mill.id}">🏗️ Open Production &amp; Dispatch</a>
+    </div>
+    ${cards}`;
 }
 
 // ============================================================
@@ -574,27 +706,36 @@ function renderMachinesTab(mill){
       <span></span>
       <button class="btn" onclick="MU.openMachineModal()">+ Add Machine</button>
     </div>
-    ${machines.length ? `<table><thead><tr><th>Machine No</th><th>Type</th><th>Brand / Model</th><th>Serial No</th><th>Gauge/Dia</th><th>Installed</th><th class="no-print">Actions</th></tr></thead>
-    <tbody>${machines.map(m=>`<tr>
-      <td>${esc(m.machine_no)}</td><td>${esc(m.machine_type||'—')}</td>
-      <td>${esc(m.brand||'—')} ${esc(m.model||'')}</td><td>${esc(m.serial_no||'—')}</td>
-      <td>${esc(m.gauge||'—')} / ${esc(m.diameter||'—')}</td><td>${fmtDate(m.install_date)}</td>
-      <td class="no-print"><button class="btn ghost" style="font-size:11px;padding:5px 9px;" onclick="MU.openMachineModal('${m.id}')">Edit</button>
-      <button class="btn ghost" style="font-size:11px;padding:5px 9px;" onclick="MU.deleteMachine('${m.id}')">Delete</button></td>
-    </tr>`).join('')}</tbody></table>`
-    : `<div class="empty">No machines logged for this mill yet.</div>`}
-  `;
+    ${machines.length ? `<div style="overflow:auto;"><table><thead><tr>
+      <th>Machine No</th><th>Knit-I Version</th><th>Cabinet SN</th><th>Cameras</th><th>Processing</th><th>Storage</th><th>Display</th><th>Wiper</th><th>IPs</th><th>Installed</th><th class="no-print">Actions</th>
+    </tr></thead>
+    <tbody>${machines.map(m=>{
+      const cams = (m.cameras||[]);
+      const camStr = m.num_cameras ? `${m.num_cameras}× (${cams.map(c=>c.cable||'?').join(', ')})` : '—';
+      return `<tr>
+        <td><b>${esc(m.machine_no)}</b><br><span class="sub">${esc(m.machine_type||'')} ${esc(m.brand||'')} ${esc(m.model||'')}</span></td>
+        <td>${esc(m.kniti_version||'—')}</td>
+        <td>${esc(m.cabinet_serial||'—')}</td>
+        <td>${esc(camStr)}</td>
+        <td>${esc(m.processing_unit||'—')}<br><span class="sub">${esc(m.internet_component||'')}</span></td>
+        <td>${esc(m.storage_type||'—')} ${esc(m.storage_capacity||'')}</td>
+        <td>${esc(m.display_type||'—')} ${esc(m.display_size||'')}</td>
+        <td>${m.wiper_installed===true?'Yes':m.wiper_installed===false?'No':'—'}</td>
+        <td class="sub">${m.tailscale_ip?('TS: '+esc(m.tailscale_ip)):''}${m.internet_ip?('<br>Net: '+esc(m.internet_ip)):''}${(!m.tailscale_ip&&!m.internet_ip)?'—':''}</td>
+        <td>${fmtDate(m.install_date)}</td>
+        <td class="no-print"><button class="btn ghost sm" onclick="MU.openMachineModal('${m.id}')">Edit</button>
+        <button class="btn ghost sm" onclick="MU.deleteMachine('${m.id}')">Delete</button></td>
+      </tr>`;}).join('')}</tbody></table></div>`
+    : `<div class="empty">No machines logged for this mill yet.</div>`}`;
 }
-
 MU.deleteMachine = async function(id){
-  if(!confirm('Delete this machine? Its to-dos/pain points stay but lose the machine tag.')) return;
+  if(!confirm('Delete this machine? Its entries stay but lose the machine tag.')) return;
   const res = await fetch(`${SUPA_URL}/rest/v1/machines?id=eq.${id}`, { method:'DELETE', headers: supaHeaders() });
-  if(res.ok){ MU.machines = MU.machines.filter(x=>x.id!==id); renderMillDetail(); }
-  else alert('Could not delete (admin/coordinator only).');
+  if(res.ok){ MU.machines = MU.machines.filter(x=>x.id!==id); renderMillDetail(); } else alert('Could not delete (admin/coordinator only).');
 };
 
 // ============================================================
-// Mill modal (add/edit)
+// Mill modal
 // ============================================================
 MU.openMillModal = function(id){
   MU.editingMillId = id || null;
@@ -634,18 +775,35 @@ document.getElementById('mSaveBtn').onclick = async function(){
     const data = await res.json();
     if(!res.ok) throw new Error((data && (data.message||data.error)) || 'Save failed');
     if(MU.editingMillId){ const i = MU.mills.findIndex(x=>x.id===MU.editingMillId); MU.mills[i] = data[0]; }
-    else { MU.mills.push(data[0]); MU.currentMillId = data[0].id; }
+    else { MU.mills.push(data[0]); MU.mills.sort((a,b)=>a.name.localeCompare(b.name)); MU.currentMillId = data[0].id; }
     MU.closeModal('millModal');
     renderMillList(); renderMillDetail();
   }catch(e){ errEl.textContent = e.message; }
 };
 
 // ============================================================
-// Machine modal (add/edit)
+// Machine modal — Knit-I profile + dynamic camera rows
 // ============================================================
+function renderCamRows(existing){
+  const n = parseInt(document.getElementById('kiNumCams').value,10) || 0;
+  const wrap = document.getElementById('camRows');
+  let html = '';
+  for(let i=1;i<=Math.min(n,12);i++){
+    const prev = (existing||[]).find(c=>c.cam===i) || {};
+    html += `<div class="camRow">
+      <span class="camLbl">Cam ${i}</span>
+      <input type="text" id="camLights_${i}" placeholder="Lights (e.g. 2× bar light)" value="${esc(prev.lights||'')}">
+      <select id="camCable_${i}">${optHtml(OPTS.cable, prev.cable||'')}</select>
+    </div>`;
+  }
+  wrap.innerHTML = html || '<p class="sub">No cameras.</p>';
+}
+document.getElementById('kiNumCams').addEventListener('input', ()=>renderCamRows(MU.__editingCams||[]));
+
 MU.openMachineModal = function(id){
   MU.editingMachineId = id || null;
   const m = id ? MU.machines.find(x=>x.id===id) : null;
+  MU.__editingCams = m ? (m.cameras||[]) : [];
   document.getElementById('machineModalTitle').textContent = id ? 'Edit Machine' : 'Add Machine';
   document.getElementById('knNo').value = m ? m.machine_no : '';
   document.getElementById('knType').value = m ? (m.machine_type||'') : '';
@@ -656,6 +814,19 @@ MU.openMachineModal = function(id){
   document.getElementById('knGauge').value = m ? (m.gauge||'') : '';
   document.getElementById('knDia').value = m ? (m.diameter||'') : '';
   document.getElementById('knNotes').value = m ? (m.notes||'') : '';
+  document.getElementById('kiCabinet').value = m ? (m.cabinet_serial||'') : '';
+  document.getElementById('kiVersion').innerHTML = optHtml(OPTS.version, m?m.kniti_version:'');
+  document.getElementById('kiInternet').innerHTML = optHtml(OPTS.internet, m?m.internet_component:'');
+  document.getElementById('kiProcessing').innerHTML = optHtml(OPTS.processing, m?m.processing_unit:'');
+  document.getElementById('kiStorageType').innerHTML = optHtml(OPTS.storageType, m?m.storage_type:'');
+  document.getElementById('kiStorageCap').innerHTML = optHtml(OPTS.storageCap, m?m.storage_capacity:'');
+  document.getElementById('kiDisplay').innerHTML = optHtml(OPTS.display, m?m.display_type:'');
+  document.getElementById('kiDisplaySize').innerHTML = optHtml(OPTS.displaySize, m?m.display_size:'');
+  document.getElementById('kiWiper').value = m ? (m.wiper_installed===true?'true':m.wiper_installed===false?'false':'') : '';
+  document.getElementById('kiTailscale').value = m ? (m.tailscale_ip||'') : '';
+  document.getElementById('kiInternetIp').value = m ? (m.internet_ip||'') : '';
+  document.getElementById('kiNumCams').value = m ? (m.num_cameras!=null?m.num_cameras:1) : 1;
+  renderCamRows(MU.__editingCams);
   document.getElementById('knErr').textContent = '';
   document.getElementById('machineModal').classList.add('show');
 };
@@ -665,6 +836,16 @@ document.getElementById('knSaveBtn').onclick = async function(){
   const errEl = document.getElementById('knErr');
   if(!no){ errEl.textContent = 'Machine No is required.'; return; }
   if(!MU.currentMillId){ errEl.textContent = 'Select a mill first.'; return; }
+  const numCams = parseInt(document.getElementById('kiNumCams').value,10) || 0;
+  const cameras = [];
+  for(let i=1;i<=Math.min(numCams,12);i++){
+    cameras.push({
+      cam: i,
+      lights: (document.getElementById(`camLights_${i}`)||{}).value?.trim() || '',
+      cable: (document.getElementById(`camCable_${i}`)||{}).value || ''
+    });
+  }
+  const wiperVal = document.getElementById('kiWiper').value;
   const body = {
     mill_id: MU.currentMillId, machine_no: no,
     machine_type: document.getElementById('knType').value.trim() || null,
@@ -674,7 +855,20 @@ document.getElementById('knSaveBtn').onclick = async function(){
     install_date: document.getElementById('knInstall').value || null,
     gauge: document.getElementById('knGauge').value.trim() || null,
     diameter: document.getElementById('knDia').value.trim() || null,
-    notes: document.getElementById('knNotes').value.trim() || null
+    notes: document.getElementById('knNotes').value.trim() || null,
+    cabinet_serial: document.getElementById('kiCabinet').value.trim() || null,
+    kniti_version: document.getElementById('kiVersion').value || null,
+    internet_component: document.getElementById('kiInternet').value || null,
+    processing_unit: document.getElementById('kiProcessing').value || null,
+    storage_type: document.getElementById('kiStorageType').value || null,
+    storage_capacity: document.getElementById('kiStorageCap').value || null,
+    display_type: document.getElementById('kiDisplay').value || null,
+    display_size: document.getElementById('kiDisplaySize').value || null,
+    wiper_installed: wiperVal === '' ? null : wiperVal === 'true',
+    num_cameras: numCams,
+    cameras,
+    tailscale_ip: document.getElementById('kiTailscale').value.trim() || null,
+    internet_ip: document.getElementById('kiInternetIp').value.trim() || null
   };
   try{
     let res;
@@ -685,7 +879,7 @@ document.getElementById('knSaveBtn').onclick = async function(){
       res = await fetch(`${SUPA_URL}/rest/v1/machines`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
     }
     const data = await res.json();
-    if(!res.ok) throw new Error((data && (data.message||data.error)) || 'Save failed (duplicate machine no on this mill?)');
+    if(!res.ok) throw new Error((data && (data.message||data.error)) || 'Save failed. If it mentions a missing column, run mill-updates-v2.sql in Supabase.');
     if(MU.editingMachineId){ const i = MU.machines.findIndex(x=>x.id===MU.editingMachineId); MU.machines[i] = data[0]; }
     else MU.machines.push(data[0]);
     MU.closeModal('machineModal');
@@ -694,7 +888,7 @@ document.getElementById('knSaveBtn').onclick = async function(){
 };
 
 // ============================================================
-// Entry modal (add to-do / pain point / suggestion / requirement / visit log)
+// Entry modal
 // ============================================================
 MU.openEntryModal = function(category){
   MU.pendingCategory = category;
@@ -729,14 +923,10 @@ async function compressImage(file, maxDim, quality){
   canvas.getContext('2d').drawImage(img, 0, 0, width, height);
   return canvas.toDataURL('image/jpeg', quality);
 }
-
 document.getElementById('eImages').addEventListener('change', async function(e){
   const files = Array.from(e.target.files || []);
-  for(const f of files){
-    try{ const compressed = await compressImage(f); MU.pendingImages.push(compressed); }catch(err){}
-  }
-  renderThumbs();
-  e.target.value = '';
+  for(const f of files){ try{ MU.pendingImages.push(await compressImage(f)); }catch(err){} }
+  renderThumbs(); e.target.value = '';
 });
 function renderThumbs(){
   document.getElementById('eThumbs').innerHTML = MU.pendingImages.map((d,i)=>`
@@ -794,9 +984,27 @@ document.getElementById('eSaveBtn').onclick = async function(){
 };
 
 // ============================================================
-// Excel Import (mills + machines)
+// Import template download
 // ============================================================
-let importRows = [], importHeaders = [], importMap = {};
+const TPL_MM_HEADERS = ['Mill Name','Area','Machine No','Machine Type','Brand','Model','Machine Serial No','Install Date (YYYY-MM-DD)','Gauge','Diameter','Cabinet Serial No','Knit-I Version','Internet Component','Processing Unit','Storage Type','Storage Capacity','Display Type','Display Size','Wiper Installed (Yes/No)','No of Cameras','Cam Cables (comma separated)','Cam Lights (comma separated)','Tailscale IP','Internet IP'];
+const TPL_UP_HEADERS = ['Mill Name','Machine No (optional)','Category (todo/pain_point/suggestion/requirement/visit_log)','Title','Details','Priority (low/normal/high/urgent)','Status (open/in_progress/done)','Visit Date (YYYY-MM-DD)','Reported By'];
+
+document.getElementById('btnTemplate').onclick = function(){
+  const wb = XLSX.utils.book_new();
+  const mmExample = ['Jay Jay Mills','Tirupur','KM-01','Single Jersey','Mayer & Cie','Relanit 3.2','MC12345','2025-11-20','28','30','CAB-0042','Supernova Single','UGREEN Ethernet Adapter','RPi 5','SSD NVMe','512GB','12V Tab','7\u2033','Yes','2','5m Shielded, LAN','2x bar light, 1x ring','100.64.10.5','192.168.1.50'];
+  const ws1 = XLSX.utils.aoa_to_sheet([TPL_MM_HEADERS, mmExample]);
+  XLSX.utils.book_append_sheet(wb, ws1, 'Mills & Machines');
+  const upExample = ['Jay Jay Mills','KM-01','pain_point','Frequent false alarms on lycra','Operator reports false alarms on lycra fabric during night shift','high','open','','Bhuvi'];
+  const ws2 = XLSX.utils.aoa_to_sheet([TPL_UP_HEADERS, upExample]);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Updates');
+  XLSX.writeFile(wb, 'KnitI_Mill_Import_Template.xlsx');
+};
+
+// ============================================================
+// Import
+// ============================================================
+let importMode = 'guess';   // 'template' | 'guess'
+let importRows = [], importHeaders = [], importMap = {}, importUpdatesRows = [];
 const IMPORT_FIELDS = [
   {key:'mill', label:'Mill / Customer Name', required:true},
   {key:'area', label:'Area / Location'},
@@ -815,7 +1023,7 @@ const GUESS = {
 };
 
 document.getElementById('btnImportExcel').onclick = ()=>{
-  importRows = []; importHeaders = []; importMap = {};
+  importRows = []; importHeaders = []; importMap = {}; importUpdatesRows = []; importMode = 'guess';
   document.getElementById('importFile').value = '';
   document.getElementById('importPreviewWrap').style.display = 'none';
   document.getElementById('importErr').textContent = '';
@@ -828,182 +1036,341 @@ document.getElementById('importFile').addEventListener('change', function(e){
   const reader = new FileReader();
   reader.onload = function(ev){
     const wb = XLSX.read(ev.target.result, { type:'array' });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
-    if(!rows.length){ document.getElementById('importErr').textContent = 'Sheet looks empty.'; return; }
-    importHeaders = rows[0].map(h=>String(h||'').trim());
-    importRows = rows.slice(1).filter(r => r.some(c => String(c||'').trim() !== ''));
-    importMap = {};
-    IMPORT_FIELDS.forEach(f=>{
-      const idx = importHeaders.findIndex(h => GUESS[f.key] && GUESS[f.key].test(h));
-      importMap[f.key] = idx >= 0 ? idx : -1;
-    });
-    renderImportPreview();
+    const mmSheet = wb.SheetNames.find(n=>/mills\s*&?\s*machines/i.test(n));
+    const upSheet = wb.SheetNames.find(n=>/^updates$/i.test(n));
+    if(mmSheet || upSheet){
+      importMode = 'template';
+      importRows = mmSheet ? XLSX.utils.sheet_to_json(wb.Sheets[mmSheet], { header:1, defval:'' }).slice(1).filter(r=>r.some(c=>String(c||'').trim()!=='')) : [];
+      importUpdatesRows = upSheet ? XLSX.utils.sheet_to_json(wb.Sheets[upSheet], { header:1, defval:'' }).slice(1).filter(r=>r.some(c=>String(c||'').trim()!=='')) : [];
+      document.getElementById('importModeNote').innerHTML = `<b>Template detected.</b> ${importRows.length} machine row(s) + ${importUpdatesRows.length} update row(s) will be imported with all Knit-I fields.`;
+      document.getElementById('importMapGrid').innerHTML = '';
+      const prevHead = `<tr>${TPL_MM_HEADERS.slice(0,8).map(h=>`<th>${esc(h)}</th>`).join('')}</tr>`;
+      const prevBody = importRows.slice(0,10).map(r=>`<tr>${r.slice(0,8).map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('');
+      document.getElementById('importPreviewTable').innerHTML = `<thead>${prevHead}</thead><tbody>${prevBody}</tbody>`;
+      document.getElementById('importCount').textContent = `Preview of first 10 machine rows (first 8 columns).`;
+    } else {
+      importMode = 'guess';
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+      if(!rows.length){ document.getElementById('importErr').textContent = 'Sheet looks empty.'; return; }
+      importHeaders = rows[0].map(h=>String(h||'').trim());
+      importRows = rows.slice(1).filter(r => r.some(c => String(c||'').trim() !== ''));
+      importMap = {};
+      IMPORT_FIELDS.forEach(f=>{
+        const idx = importHeaders.findIndex(h => GUESS[f.key] && GUESS[f.key].test(h));
+        importMap[f.key] = idx >= 0 ? idx : -1;
+      });
+      document.getElementById('importModeNote').innerHTML = `Generic sheet — correct the column mapping if any guess is wrong. (For the full Knit-I fields, use the template.)`;
+      renderGuessPreview();
+    }
+    document.getElementById('importPreviewWrap').style.display = '';
   };
   reader.readAsArrayBuffer(file);
 });
 
-function renderImportPreview(){
-  document.getElementById('importPreviewWrap').style.display = '';
+function renderGuessPreview(){
   document.getElementById('importMapGrid').innerHTML = IMPORT_FIELDS.map(f => `
-    <div>
-      <label class="f">${f.label}${f.required?' *':''}</label>
+    <div><label class="f">${f.label}${f.required?' *':''}</label>
       <select onchange="MU.setImportMap('${f.key}', this.value)">
         <option value="-1">— not in file —</option>
         ${importHeaders.map((h,i)=>`<option value="${i}" ${importMap[f.key]===i?'selected':''}>${esc(h||'Column '+(i+1))}</option>`).join('')}
-      </select>
-    </div>`).join('');
+      </select></div>`).join('');
   const headRow = `<tr>${IMPORT_FIELDS.map(f=>`<th>${f.label}</th>`).join('')}</tr>`;
-  const bodyRows = importRows.slice(0,15).map(r => `<tr>${IMPORT_FIELDS.map(f=>`<td>${esc(importMap[f.key]>=0?r[importMap[f.key]]:'')}</td>`).join('')}</tr>`).join('');
+  const bodyRows = importRows.slice(0,10).map(r => `<tr>${IMPORT_FIELDS.map(f=>`<td>${esc(importMap[f.key]>=0?r[importMap[f.key]]:'')}</td>`).join('')}</tr>`).join('');
   document.getElementById('importPreviewTable').innerHTML = `<thead>${headRow}</thead><tbody>${bodyRows}</tbody>`;
-  document.getElementById('importCount').textContent = `${importRows.length} data row(s) found. Showing first 15.`;
+  document.getElementById('importCount').textContent = `${importRows.length} data row(s) found. Showing first 10.`;
 }
-MU.setImportMap = function(key, val){ importMap[key] = parseInt(val,10); renderImportPreview(); };
+MU.setImportMap = function(key, val){ importMap[key] = parseInt(val,10); renderGuessPreview(); };
+
+async function getOrCreateMill(name, area, cache){
+  const key = normName(name);
+  if(cache[key]) return cache[key];
+  const body = { name, area: area||null, created_by: ME.id };
+  const res = await fetch(`${SUPA_URL}/rest/v1/mills`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+  const data = await res.json();
+  if(!res.ok) throw new Error((data && (data.message||data.error||data.hint)) || `mill insert failed (HTTP ${res.status})`);
+  cache[key] = data[0]; MU.mills.push(data[0]);
+  return data[0];
+}
 
 document.getElementById('importGoBtn').onclick = async function(){
   const errEl = document.getElementById('importErr');
-  if(importMap.mill < 0){ errEl.textContent = 'You must map a "Mill / Customer Name" column.'; return; }
   const btn = this; btn.disabled = true;
   const progWrap = document.getElementById('importProgressWrap'); progWrap.style.display = '';
   const progBar = document.getElementById('importProgressBar');
-  let done = 0, errors = 0;
-  const millCache = {}; // normalized name -> mill object
+  const millCache = {};
   MU.mills.forEach(m => millCache[normName(m.name)] = m);
+  let errors = 0;
+  let firstErrorMsg = '';
+  const total = importRows.length + importUpdatesRows.length || 1;
+  let done = 0;
 
-  for(const row of importRows){
-    try{
-      const millName = String(row[importMap.mill]||'').trim();
-      if(!millName){ done++; continue; }
-      const key = normName(millName);
-      let mill = millCache[key];
-      if(!mill){
-        const body = { name: millName, area: importMap.area>=0 ? (String(row[importMap.area]||'').trim()||null) : null, created_by: ME.id };
-        const res = await fetch(`${SUPA_URL}/rest/v1/mills`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
-        const data = await res.json();
-        if(!res.ok) throw new Error(data.message || 'mill insert failed');
-        mill = data[0]; millCache[key] = mill; MU.mills.push(mill);
-      }
-      const machineNo = importMap.machine_no>=0 ? String(row[importMap.machine_no]||'').trim() : '';
-      if(machineNo){
-        const exists = MU.machines.find(m2=>m2.mill_id===mill.id && normName(m2.machine_no)===normName(machineNo));
-        if(!exists){
-          const mbody = {
-            mill_id: mill.id, machine_no: machineNo,
-            machine_type: importMap.machine_type>=0 ? (String(row[importMap.machine_type]||'').trim()||null) : null,
-            brand: importMap.brand>=0 ? (String(row[importMap.brand]||'').trim()||null) : null,
-            model: importMap.model>=0 ? (String(row[importMap.model]||'').trim()||null) : null,
-            serial_no: importMap.serial_no>=0 ? (String(row[importMap.serial_no]||'').trim()||null) : null,
-            gauge: importMap.gauge>=0 ? (String(row[importMap.gauge]||'').trim()||null) : null,
-            diameter: importMap.diameter>=0 ? (String(row[importMap.diameter]||'').trim()||null) : null,
-            created_by: ME.id
-          };
-          const mres = await fetch(`${SUPA_URL}/rest/v1/machines`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(mbody) });
-          const mdata = await mres.json();
-          if(mres.ok) MU.machines.push(mdata[0]);
+  try{
+    if(importMode === 'guess' && importMap.mill < 0){ errEl.textContent = 'Map a "Mill / Customer Name" column first.'; btn.disabled = false; return; }
+
+    // Machines / mills
+    for(const row of importRows){
+      try{
+        let millName, area, machineBody = null;
+        if(importMode === 'template'){
+          const g = i => String(row[i]==null?'':row[i]).trim();
+          millName = g(0); area = g(1);
+          if(!millName){ done++; continue; }
+          const mill = await getOrCreateMill(millName, area, millCache);
+          const machineNo = g(2);
+          if(machineNo){
+            const cables = g(20) ? g(20).split(',').map(s=>s.trim()) : [];
+            const lights = g(21) ? g(21).split(',').map(s=>s.trim()) : [];
+            const nCams = parseInt(g(19),10) || Math.max(cables.length, lights.length, 0);
+            const cameras = [];
+            for(let i=1;i<=nCams;i++) cameras.push({ cam:i, lights: lights[i-1]||'', cable: cables[i-1]||'' });
+            const wiperRaw = g(18).toLowerCase();
+            machineBody = {
+              mill_id: mill.id, machine_no: machineNo,
+              machine_type: g(3)||null, brand: g(4)||null, model: g(5)||null, serial_no: g(6)||null,
+              install_date: g(7)||null, gauge: g(8)||null, diameter: g(9)||null,
+              cabinet_serial: g(10)||null, kniti_version: g(11)||null, internet_component: g(12)||null,
+              processing_unit: g(13)||null, storage_type: g(14)||null, storage_capacity: g(15)||null,
+              display_type: g(16)||null, display_size: g(17)||null,
+              wiper_installed: wiperRaw ? /^y|true|1/.test(wiperRaw) : null,
+              num_cameras: nCams || null, cameras,
+              tailscale_ip: g(22)||null, internet_ip: g(23)||null,
+              created_by: ME.id
+            };
+          }
+        } else {
+          millName = String(row[importMap.mill]||'').trim();
+          if(!millName){ done++; continue; }
+          area = importMap.area>=0 ? String(row[importMap.area]||'').trim() : '';
+          const mill = await getOrCreateMill(millName, area, millCache);
+          const machineNo = importMap.machine_no>=0 ? String(row[importMap.machine_no]||'').trim() : '';
+          if(machineNo){
+            machineBody = {
+              mill_id: mill.id, machine_no: machineNo,
+              machine_type: importMap.machine_type>=0 ? (String(row[importMap.machine_type]||'').trim()||null) : null,
+              brand: importMap.brand>=0 ? (String(row[importMap.brand]||'').trim()||null) : null,
+              model: importMap.model>=0 ? (String(row[importMap.model]||'').trim()||null) : null,
+              serial_no: importMap.serial_no>=0 ? (String(row[importMap.serial_no]||'').trim()||null) : null,
+              gauge: importMap.gauge>=0 ? (String(row[importMap.gauge]||'').trim()||null) : null,
+              diameter: importMap.diameter>=0 ? (String(row[importMap.diameter]||'').trim()||null) : null,
+              created_by: ME.id
+            };
+          }
         }
-      }
-    }catch(e){ errors++; }
-    done++;
-    progBar.style.width = Math.round(done/importRows.length*100) + '%';
+        if(machineBody){
+          const exists = MU.machines.find(m2=>m2.mill_id===machineBody.mill_id && normName(m2.machine_no)===normName(machineBody.machine_no));
+          if(!exists){
+            const mres = await fetch(`${SUPA_URL}/rest/v1/machines`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(machineBody) });
+            const mdata = await mres.json();
+            if(mres.ok) MU.machines.push(mdata[0]);
+            else { errors++; if(!firstErrorMsg) firstErrorMsg = (mdata && (mdata.message||mdata.error||mdata.hint)) || `HTTP ${mres.status}`; }
+          }
+        }
+      }catch(e){ errors++; if(!firstErrorMsg) firstErrorMsg = e.message || String(e); }
+      done++; progBar.style.width = Math.round(done/total*100)+'%';
+    }
+
+    // Updates (template only)
+    const validCats = ['todo','pain_point','suggestion','requirement','visit_log'];
+    for(const row of importUpdatesRows){
+      try{
+        const g = i => String(row[i]==null?'':row[i]).trim();
+        const millName = g(0);
+        if(!millName){ done++; continue; }
+        const mill = await getOrCreateMill(millName, '', millCache);
+        const machineNo = g(1);
+        const machine = machineNo ? MU.machines.find(m=>m.mill_id===mill.id && normName(m.machine_no)===normName(machineNo)) : null;
+        const cat = validCats.includes(g(2).toLowerCase()) ? g(2).toLowerCase() : 'todo';
+        const prio = ['low','normal','high','urgent'].includes(g(5).toLowerCase()) ? g(5).toLowerCase() : 'normal';
+        const stat = ['open','in_progress','done'].includes(g(6).toLowerCase()) ? g(6).toLowerCase() : 'open';
+        const body = {
+          mill_id: mill.id, machine_id: machine ? machine.id : null, category: cat,
+          title: g(3)||null, description: g(4)||null, priority: prio, status: stat,
+          visit_date: g(7)||null, images: [],
+          created_by: ME.id, created_by_name: g(8) || ME.name
+        };
+        const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
+        const data = await res.json();
+        if(res.ok) MU.updates.unshift(data[0]);
+        else { errors++; if(!firstErrorMsg) firstErrorMsg = (data && (data.message||data.error||data.hint)) || `HTTP ${res.status}`; }
+      }catch(e){ errors++; if(!firstErrorMsg) firstErrorMsg = e.message || String(e); }
+      done++; progBar.style.width = Math.round(done/total*100)+'%';
+    }
+  } finally {
+    btn.disabled = false;
   }
-  errEl.textContent = errors ? `Done with ${errors} row(s) skipped due to errors.` : '';
-  btn.disabled = false;
+  errEl.textContent = errors ? `${errors} row(s) skipped. First error: ${firstErrorMsg}` : '';
+  MU.mills.sort((a,b)=>a.name.localeCompare(b.name));
   renderMillList(); renderMillDetail();
-  if(!errors){ MU.closeModal('importModal'); alert(`Import complete: ${done} row(s) processed.`); }
+  if(!errors){ MU.closeModal('importModal'); alert('Import complete.'); }
 };
 
 // ============================================================
-// Export: Excel (mill-wise, machine-wise sheets across all data)
+// Export (scoped: all / current / chosen mills; dataset; date range)
 // ============================================================
-document.getElementById('btnExportExcel').onclick = function(){
-  const wb = XLSX.utils.book_new();
+document.getElementById('btnExport').onclick = function(){
+  const pick = document.getElementById('xMillPick');
+  pick.innerHTML = MU.mills.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+  document.getElementById('xScope').value = MU.currentMillId ? 'current' : 'all';
+  pick.style.display = 'none';
+  document.getElementById('xErr').textContent = '';
+  document.getElementById('exportModal').classList.add('show');
+};
 
-  const millRows = MU.mills.map(m=>{
-    const orders = ordersForMill(m);
-    const assignments = assignmentsForMill(m);
-    const csats = orders.map(o=>o.csat_rating).filter(n=>n>0);
-    return {
-      Mill: m.name, Area: m.area||'', Machines: MU.machines.filter(x=>x.mill_id===m.id).length,
-      'Completed WOs': orders.length,
-      'Pending/Assigned': assignments.filter(a=>a.status==='scheduled'||a.status==='in_progress').length,
-      'Avg CSAT': csats.length ? (csats.reduce((a,b)=>a+b,0)/csats.length).toFixed(1) : '',
-      'Open To-Dos': MU.updates.filter(u=>u.mill_id===m.id && u.category==='todo' && u.status!=='done').length
-    };
-  });
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(millRows), 'Mills Overview');
+function exportScopeMills(){
+  const scope = document.getElementById('xScope').value;
+  if(scope === 'all') return MU.mills;
+  if(scope === 'current'){
+    const m = MU.mills.find(x=>x.id===MU.currentMillId);
+    return m ? [m] : [];
+  }
+  const ids = Array.from(document.getElementById('xMillPick').selectedOptions).map(o=>o.value);
+  return MU.mills.filter(m=>ids.includes(m.id));
+}
 
-  const machineRows = MU.machines.slice().sort((a,b)=>{
+MU.doExport = function(format){
+  const mills = exportScopeMills();
+  const errEl = document.getElementById('xErr');
+  if(!mills.length){ errEl.textContent = 'No mills selected (select a mill or choose "All mills").'; return; }
+  const dataset = document.getElementById('xData').value;
+  const from = document.getElementById('xFrom').value || '';
+  const to = document.getElementById('xTo').value || '';
+  if(format === 'excel') exportExcel(mills, dataset, from, to);
+  else exportPdf(mills, dataset, from, to);
+  MU.closeModal('exportModal');
+};
+
+function entryRows(mills, cat, from, to){
+  const millIds = new Set(mills.map(m=>m.id));
+  return MU.updates
+    .filter(u=>millIds.has(u.mill_id) && u.category===cat && inRange(u.visit_date||u.created_at, from, to))
+    .sort((a,b)=>{
+      const ma = MU.mills.find(m=>m.id===a.mill_id), mb = MU.mills.find(m=>m.id===b.mill_id);
+      return (ma?ma.name:'').localeCompare(mb?mb.name:'') || new Date(a.created_at)-new Date(b.created_at);
+    })
+    .map(u=>{
+      const mill = MU.mills.find(m=>m.id===u.mill_id);
+      return {
+        Mill: mill?mill.name:'', Machine: machineName(u.machine_id), Title: u.title||'', Details: u.description||'',
+        Priority: u.priority, Status: u.status, 'Date': (u.visit_date||String(u.created_at).slice(0,10)),
+        'Reported By': u.created_by_name||'', Photos: (u.images||[]).length
+      };
+    });
+}
+function machineRows(mills){
+  const millIds = new Set(mills.map(m=>m.id));
+  return MU.machines.filter(x=>millIds.has(x.mill_id)).sort((a,b)=>{
     const ma = MU.mills.find(m=>m.id===a.mill_id), mb = MU.mills.find(m=>m.id===b.mill_id);
     return (ma?ma.name:'').localeCompare(mb?mb.name:'') || a.machine_no.localeCompare(b.machine_no);
   }).map(x=>{
     const mill = MU.mills.find(m=>m.id===x.mill_id);
-    return { Mill: mill?mill.name:'', 'Machine No': x.machine_no, Type: x.machine_type||'', Brand: x.brand||'', Model: x.model||'', Serial: x.serial_no||'', Gauge: x.gauge||'', Diameter: x.diameter||'', Installed: x.install_date||'' };
+    return {
+      Mill: mill?mill.name:'', 'Machine No': x.machine_no, Type: x.machine_type||'', Brand: x.brand||'', Model: x.model||'',
+      'Machine SN': x.serial_no||'', 'Cabinet SN': x.cabinet_serial||'', 'Knit-I Version': x.kniti_version||'',
+      'Internet': x.internet_component||'', 'Processing': x.processing_unit||'',
+      'Storage': `${x.storage_type||''} ${x.storage_capacity||''}`.trim(), 'Display': `${x.display_type||''} ${x.display_size||''}`.trim(),
+      'Wiper': x.wiper_installed===true?'Yes':x.wiper_installed===false?'No':'',
+      'Cameras': x.num_cameras||'', 'Camera Details': (x.cameras||[]).map(c=>`Cam${c.cam}: ${c.lights||'-'} / ${c.cable||'-'}`).join('; '),
+      'Tailscale IP': x.tailscale_ip||'', 'Internet IP': x.internet_ip||'', Installed: x.install_date||''
+    };
   });
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(machineRows), 'Machines');
+}
+function productionRows(mills, from, to){
+  const millIds = new Set(mills.map(m=>m.id));
+  const out = [];
+  MU.production.filter(p=>millIds.has(p.mill_id) && inRange(p.dispatch_date||p.planned_date||p.created_at, from, to)).forEach(p=>{
+    const mill = MU.mills.find(m=>m.id===p.mill_id);
+    const bom = p.bom||[];
+    if(!bom.length){
+      out.push({ Mill: mill?mill.name:'', Plan: p.title, Status: PROD_STATUS_LABELS[p.status]||p.status, 'Planned': p.planned_date||'', 'Dispatched': p.dispatch_date||'', Courier: p.courier_name||'', 'Tracking No': p.tracking_no||'', Item:'', Qty:'', 'Item Status':'', Note: p.notes||'' });
+    } else bom.forEach(b=>{
+      out.push({ Mill: mill?mill.name:'', Plan: p.title, Status: PROD_STATUS_LABELS[p.status]||p.status, 'Planned': p.planned_date||'', 'Dispatched': p.dispatch_date||'', Courier: p.courier_name||'', 'Tracking No': p.tracking_no||'', Item: b.item||'', Qty: `${b.qty||''} ${b.unit||''}`.trim(), 'Item Status': b.status||'pending', Note: b.note||'' });
+    });
+  });
+  return out;
+}
 
-  ['todo','pain_point','suggestion','requirement','visit_log'].forEach(cat=>{
-    const rows = MU.updates.filter(u=>u.category===cat).slice().sort((a,b)=>{
-      const ma = MU.mills.find(m=>m.id===a.mill_id), mb = MU.mills.find(m=>m.id===b.mill_id);
-      return (ma?ma.name:'').localeCompare(mb?mb.name:'');
-    }).map(u=>{
-      const mill = MU.mills.find(m=>m.id===u.mill_id);
+function exportExcel(mills, dataset, from, to){
+  const wb = XLSX.utils.book_new();
+  const singleCats = ['todo','pain_point','suggestion','requirement','visit_log'];
+  if(dataset === 'machines'){
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(machineRows(mills)), 'Machines');
+  } else if(dataset === 'production'){
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productionRows(mills, from, to)), 'Production & Dispatch');
+  } else if(singleCats.includes(dataset)){
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entryRows(mills, dataset, from, to)), CATEGORY_LABELS[dataset].slice(0,31));
+  } else {
+    // everything
+    const millRows = mills.map(m=>{
+      const orders = ordersForMill(m), assignments = assignmentsForMill(m);
+      const csats = orders.map(o=>o.csat_rating).filter(n=>n>0);
       return {
-        Mill: mill?mill.name:'', Machine: machineName(u.machine_id), Title: u.title||'', Details: u.description||'',
-        Priority: u.priority, Status: u.status, 'Visit Date': u.visit_date||'',
-        'Reported By': u.created_by_name||'', Date: fmtDate(u.created_at), Photos: (u.images||[]).length
+        Mill: m.name, Area: m.area||'', Machines: MU.machines.filter(x=>x.mill_id===m.id).length,
+        'Completed WOs': orders.length,
+        'Pending/Assigned': assignments.filter(a=>a.status==='scheduled'||a.status==='in_progress').length,
+        'Avg CSAT': csats.length ? (csats.reduce((a,b)=>a+b,0)/csats.length).toFixed(1) : '',
+        'Open To-Dos': MU.updates.filter(u=>u.mill_id===m.id && u.category==='todo' && u.status!=='done').length,
+        'Production Plans': productionForMill(m).length
       };
     });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), CATEGORY_LABELS[cat].slice(0,31));
-  });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(millRows), 'Mills Overview');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(machineRows(mills)), 'Machines');
+    singleCats.forEach(cat=>{
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entryRows(mills, cat, from, to)), CATEGORY_LABELS[cat].slice(0,31));
+    });
+    const millIds = new Set(mills.map(m=>m.id));
+    const woRows = mills.flatMap(m => ordersForMill(m).filter(o=>inRange(o.created_at,from,to)).map(o => ({
+      Mill: m.name, 'WO #': o.wo_number||'', Type: o.order_type||'', Engineer: o.engineer||'', Machines: o.machine_count||0, CSAT: o.csat_rating||'', Date: String(o.created_at).slice(0,10)
+    })));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(woRows), 'Work Orders');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productionRows(mills, from, to)), 'Production & Dispatch');
+  }
+  const scopeName = mills.length === 1 ? mills[0].name.replace(/[^\w]+/g,'_') : (mills.length === MU.mills.length ? 'All_Mills' : `${mills.length}_Mills`);
+  XLSX.writeFile(wb, `KnitI_${scopeName}_${dataset}_${todayStr()}.xlsx`);
+}
 
-  const woRows = MU.mills.flatMap(m => ordersForMill(m).map(o => ({
-    Mill: m.name, 'WO #': o.wo_number||'', Type: o.order_type||'', Engineer: o.engineer||'', Machines: o.machine_count||0, CSAT: o.csat_rating||'', Date: fmtDate(o.created_at)
-  })));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(woRows), 'Work Orders');
-
-  XLSX.writeFile(wb, `KnitI_Mill_Updates_${todayStr()}.xlsx`);
-};
-
-// ============================================================
-// Export: PDF (print view) — current mill if one is selected, else all
-// ============================================================
-document.getElementById('btnExportPdf').onclick = function(){
-  const mills = MU.currentMillId ? MU.mills.filter(m=>m.id===MU.currentMillId) : MU.mills;
+function exportPdf(mills, dataset, from, to){
+  const singleCats = ['todo','pain_point','suggestion','requirement','visit_log'];
   const win = window.open('', '_blank');
-  const sections = mills.map(mill=>{
-    const machines = MU.machines.filter(x=>x.mill_id===mill.id);
-    const orders = ordersForMill(mill);
-    const catSections = ['todo','pain_point','suggestion','requirement','visit_log'].map(cat=>{
-      const rows = MU.updates.filter(u=>u.mill_id===mill.id && u.category===cat);
-      if(!rows.length) return '';
-      return `<h3>${CATEGORY_LABELS[cat]}</h3><table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:12px;">
-        <tr style="background:#eee;"><th>Machine</th><th>Title</th><th>Details</th><th>Priority/Status</th><th>Date</th><th>By</th></tr>
-        ${rows.map(u=>`<tr><td>${esc(machineName(u.machine_id))}</td><td>${esc(u.title||'')}</td><td>${esc(u.description||'')}</td><td>${esc(u.priority)}${cat==='todo'?' / '+esc(u.status):''}</td><td>${fmtDate(u.visit_date||u.created_at)}</td><td>${esc(u.created_by_name||'')}</td></tr>`).join('')}
-      </table>`;
-    }).join('');
-    return `
-      <div style="page-break-after:always;">
+  const tbl = (headers, rows) => `<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:11.5px;margin-bottom:14px;">
+    <tr style="background:#eee;">${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>
+    ${rows.map(r=>`<tr>${headers.map(h=>`<td>${esc(r[h]!=null?r[h]:'')}</td>`).join('')}</tr>`).join('')}
+  </table>`;
+  const rangeNote = (from||to) ? `<p style="font-size:12px;color:#555;">Date range: ${from||'…'} → ${to||'…'}</p>` : '';
+  let html = '';
+  if(singleCats.includes(dataset)){
+    const rows = entryRows(mills, dataset, from, to);
+    html = `<h1>${CATEGORY_LABELS[dataset]} — ${mills.length===1?esc(mills[0].name):(mills.length===MU.mills.length?'All Mills':mills.length+' Mills')}</h1>${rangeNote}` +
+      (rows.length ? tbl(Object.keys(rows[0]), rows) : '<p>No entries in range.</p>');
+  } else if(dataset === 'machines'){
+    const rows = machineRows(mills);
+    html = `<h1>Machines — ${mills.length===1?esc(mills[0].name):'Selected Mills'}</h1>` + (rows.length ? tbl(Object.keys(rows[0]), rows) : '<p>No machines.</p>');
+  } else if(dataset === 'production'){
+    const rows = productionRows(mills, from, to);
+    html = `<h1>Production &amp; Dispatch — ${mills.length===1?esc(mills[0].name):'Selected Mills'}</h1>${rangeNote}` + (rows.length ? tbl(Object.keys(rows[0]), rows) : '<p>No production records in range.</p>');
+  } else {
+    html = mills.map(mill=>{
+      const machines = machineRows([mill]);
+      const orders = ordersForMill(mill).filter(o=>inRange(o.created_at,from,to));
+      const prodRows = productionRows([mill], from, to);
+      const catHtml = singleCats.map(cat=>{
+        const rows = entryRows([mill], cat, from, to);
+        return rows.length ? `<h3>${CATEGORY_LABELS[cat]}</h3>${tbl(Object.keys(rows[0]), rows)}` : '';
+      }).join('');
+      return `<div style="page-break-after:always;">
         <h1>${esc(mill.name)}</h1>
-        <p>${esc(mill.area||'')} ${mill.address?(' • '+esc(mill.address)):''}</p>
-        <h3>Machines (${machines.length})</h3>
-        <table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:12px;">
-          <tr style="background:#eee;"><th>Machine No</th><th>Type</th><th>Brand/Model</th><th>Serial</th></tr>
-          ${machines.map(m=>`<tr><td>${esc(m.machine_no)}</td><td>${esc(m.machine_type||'')}</td><td>${esc(m.brand||'')} ${esc(m.model||'')}</td><td>${esc(m.serial_no||'')}</td></tr>`).join('')}
-        </table>
-        <h3>Work Orders (${orders.length})</h3>
-        <table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:12px;">
-          <tr style="background:#eee;"><th>WO #</th><th>Type</th><th>Engineer</th><th>CSAT</th><th>Date</th></tr>
-          ${orders.map(o=>`<tr><td>${esc(o.wo_number||'')}</td><td>${esc(o.order_type||'')}</td><td>${esc(o.engineer||'')}</td><td>${o.csat_rating||''}</td><td>${fmtDate(o.created_at)}</td></tr>`).join('')}
-        </table>
-        ${catSections}
+        <p>${esc(mill.area||'')} ${mill.address?(' • '+esc(mill.address)):''}</p>${rangeNote}
+        <h3>Machines (${machines.length})</h3>${machines.length?tbl(['Machine No','Knit-I Version','Cabinet SN','Cameras','Camera Details','Processing','Storage','Display','Wiper','Tailscale IP','Installed'], machines):'<p>None.</p>'}
+        <h3>Work Orders (${orders.length})</h3>${orders.length?tbl(['WO','Type','Engineer','CSAT','Date'], orders.map(o=>({WO:o.wo_number||'',Type:o.order_type||'',Engineer:o.engineer||'',CSAT:o.csat_rating||'',Date:String(o.created_at).slice(0,10)}))):'<p>None.</p>'}
+        ${prodRows.length?`<h3>Production &amp; Dispatch</h3>${tbl(Object.keys(prodRows[0]), prodRows)}`:''}
+        ${catHtml}
       </div>`;
-  }).join('');
-  win.document.write(`<html><head><title>Mill Report</title></head><body style="font-family:sans-serif;color:#1B2229;">${sections}</body></html>`);
+    }).join('');
+  }
+  win.document.write(`<html><head><title>Knit-I Mill Report</title></head><body style="font-family:sans-serif;color:#1B2229;">${html}</body></html>`);
   win.document.close();
   setTimeout(()=>win.print(), 400);
-};
-
-function wireGlobalButtons(){ /* buttons already wired above via addEventListener */ }
+}
 
 })();
 </script>

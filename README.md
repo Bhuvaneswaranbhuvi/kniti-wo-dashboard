@@ -1,22 +1,22 @@
-# kniti-wo-backend
+# Knit-I Work Order System — deployment
+
+## Files (all go in the repo root, served by GitHub Pages)
+- `index.html` — office dashboard (login here first)
+- `work_order.html` — engineer PWA
+- `mill-updates.html` — mill-wise updates (machines, pain points, requirements, to-dos, visit logs)
+- `production.html` — production & dispatch (plans, BOM, shortages, courier tracking)
+
+Supabase URL + anon key are baked in; localStorage settings override them if present.
+
+## SQL — run in Supabase SQL Editor, in this order
+1. `supabase-setup.sql` — orders/assignments + photos bucket *(already applied — "policy already exists" errors mean skip)*
+2. `auth-and-roles.sql` — profiles + roles *(already applied — skip if it errors)*
+3. `permissions-v2.sql` *(already applied — skip if it errors)*
+4. `mill-updates-schema.sql` — mills, machines, mill_updates
+5. `mill-updates-v2.sql` — Knit-I machine config columns + production_dispatch table  ← **run this now**
 
 ## Deploy
-1. Copy every file in this folder into your repo root (`~/Music/kniti-wo-backend`), replacing the old ones.
-2. `git add . && git commit -m "Add mill-updates page" && git push`
-3. GitHub Pages serves from `/` root — no folder changes needed.
+Copy all files to the repo root, commit, push. GitHub Pages serves from root.
 
-## Database — run these in Supabase SQL Editor, in this exact order
-1. `supabase-setup.sql` — base tables (orders, assignments) + photos bucket *(skip if already run)*
-2. `auth-and-roles.sql` — login + roles *(skip if already run)*
-3. `permissions-v2.sql` — locking + assignment permissions *(skip if already run)*
-4. `mill-updates-schema.sql` — **new**: mills, machines, mill_updates tables
-
-If steps 1–3 were already run on this Supabase project earlier, just run step 4.
-
-## Files
-- `index.html` — office dashboard (Submitted Orders, Schedule, Assignments, Admin, and the new 🏭 Mills tab)
-- `work_order.html` — field engineer PWA
-- `mill-updates.html` — mill-wise page: to-dos, pain points, engineer suggestions, customer requirements, visit logs, work-order summary, machines, Excel import/export
-- `*.sql` — run once each, in order above
-
-Supabase URL and anon key are already baked into all three HTML files (project: `ipvgfjkyykhozomwwrfj`) — no per-device setup needed, just sign in.
+## Importing your existing data
+On the Mills page click **Download Import Template** → fill the two sheets ("Mills & Machines" with all Knit-I fields, "Updates" for pain points/requirements/etc.) → **Import from Excel**. Any other Excel also works via column-mapping (basic fields only).
