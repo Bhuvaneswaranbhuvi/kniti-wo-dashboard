@@ -762,8 +762,14 @@ MU.addComment = async function(id){
 };
 MU.deleteEntry = async function(id){
   if(!confirm('Delete this entry?')) return;
-  const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates?id=eq.${id}`, { method:'DELETE', headers: supaHeaders() });
-  if(res.ok){ MU.updates = MU.updates.filter(x=>x.id!==id); renderTabContent(); } else alert('Could not delete — permission?');
+  const res = await fetch(`${SUPA_URL}/rest/v1/mill_updates?id=eq.${id}`, { method:'DELETE', headers: supaHeaders({'Prefer':'return=representation'}) });
+  let deleted = [];
+  try{ deleted = await res.json(); }catch(e){}
+  if(res.ok && Array.isArray(deleted) && deleted.length){
+    MU.updates = MU.updates.filter(x=>x.id!==id); renderTabContent();
+  } else {
+    alert('Not deleted — you can only delete your own entries (admins can delete any).');
+  }
 };
 
 // ============================================================
@@ -895,8 +901,17 @@ function renderMachinesTab(mill){
 }
 MU.deleteMachine = async function(id){
   if(!confirm('Delete this machine? Its entries stay but lose the machine tag.')) return;
-  const res = await fetch(`${SUPA_URL}/rest/v1/machines?id=eq.${id}`, { method:'DELETE', headers: supaHeaders() });
-  if(res.ok){ MU.machines = MU.machines.filter(x=>x.id!==id); renderMillDetail(); } else alert('Could not delete (admin/coordinator only).');
+  const res = await fetch(`${SUPA_URL}/rest/v1/machines?id=eq.${id}`, { method:'DELETE', headers: supaHeaders({'Prefer':'return=representation'}) });
+  let deleted = [];
+  try{ deleted = await res.json(); }catch(e){}
+  if(res.ok && Array.isArray(deleted) && deleted.length){
+    MU.machines = MU.machines.filter(x=>x.id!==id);
+    renderMillDetail();
+  } else if(res.ok){
+    alert('Not deleted — machine deletion is admin-only. Your login may not have the admin role in the database (check the Admin tab on the dashboard), or the machine was already removed.');
+  } else {
+    alert('Delete failed (HTTP '+res.status+').');
+  }
 };
 
 // ============================================================
@@ -1026,6 +1041,17 @@ document.getElementById('knSaveBtn').onclick = async function(){
   const errEl = document.getElementById('knErr');
   if(!no){ errEl.textContent = 'Machine No is required.'; return; }
   if(!MU.currentMillId){ errEl.textContent = 'Select a mill first.'; return; }
+  // Tailscale IP is the unique identity of a Knit-I machine — block duplicates
+  const tsRaw = document.getElementById('kiTailscale').value.trim();
+  if(tsRaw){
+    const tsNorm = tsRaw.toLowerCase();
+    const holder = MU.machines.find(m => m.id !== MU.editingMachineId && (m.tailscale_ip||'').trim().toLowerCase() === tsNorm);
+    if(holder){
+      const hm = MU.mills.find(x=>x.id===holder.mill_id);
+      errEl.textContent = `Tailscale IP ${tsRaw} is already used by machine "${holder.machine_no}" at ${hm?hm.name:'another mill'}. Edit that machine instead of creating a duplicate.`;
+      return;
+    }
+  }
   const numCams = parseInt(document.getElementById('kiNumCams').value,10) || 0;
   const cameras = [];
   for(let i=1;i<=Math.min(numCams,12);i++){
@@ -1069,7 +1095,14 @@ document.getElementById('knSaveBtn').onclick = async function(){
       res = await fetch(`${SUPA_URL}/rest/v1/machines`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(body) });
     }
     const data = await res.json();
-    if(!res.ok) throw new Error((data && (data.message||data.error)) || 'Save failed. If it mentions a missing column, run mill-updates-v2.sql in Supabase.');
+    if(!res.ok){
+      let msg = (data && (data.message||data.error)) || 'Save failed. If it mentions a missing column, run mill-updates-v2.sql in Supabase.';
+      if(/machines_tailscale_ip_uniq|duplicate key/i.test(msg)) msg = 'That Tailscale IP is already registered on another machine — duplicates are not allowed.';
+      throw new Error(msg);
+    }
+    if(MU.editingMachineId && (!Array.isArray(data) || !data.length)){
+      throw new Error('Edit was not saved — only admins and coordinators can edit machines. Ask an admin, or check your role in the dashboard Admin tab.');
+    }
     if(MU.editingMachineId){ const i = MU.machines.findIndex(x=>x.id===MU.editingMachineId); MU.machines[i] = data[0]; }
     else MU.machines.push(data[0]);
     MU.closeModal('machineModal');
@@ -1384,7 +1417,11 @@ document.getElementById('importGoBtn').onclick = async function(){
           }
         }
         if(machineBody){
-          const exists = MU.machines.find(m2=>m2.mill_id===machineBody.mill_id && normName(m2.machine_no)===normName(machineBody.machine_no));
+          const tsNew = (machineBody.tailscale_ip||'').trim().toLowerCase();
+          const exists = MU.machines.find(m2=>
+            (m2.mill_id===machineBody.mill_id && normName(m2.machine_no)===normName(machineBody.machine_no)) ||
+            (tsNew && (m2.tailscale_ip||'').trim().toLowerCase() === tsNew)
+          );
           if(!exists){
             const mres = await fetch(`${SUPA_URL}/rest/v1/machines`, { method:'POST', headers: supaHeaders({'Prefer':'return=representation'}), body: JSON.stringify(machineBody) });
             const mdata = await mres.json();
