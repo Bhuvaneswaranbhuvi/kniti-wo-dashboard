@@ -1020,11 +1020,14 @@ function showView(name){
   });
 }
 
-document.getElementById('tabNewOrder').onclick = async ()=>{
-  showView('neworder');
-  // Re-check login/session state every time this tab opens — the wizard's own
-  // init only ran once at page load, which may have been before you signed in.
-  if(window.woRefresh) await window.woRefresh();
+document.getElementById('tabNewOrder').onclick = ()=>{
+  // This used to show an embedded copy of the order wizard, but that copy
+  // was a separate, unmaintained duplicate of work_order.html and had gone
+  // stale (old WO numbering, missing the Camera & Cable Details / Slipring /
+  // Electrical / Internet IP / Sensor / Image Coverage / Wire Routing
+  // fields). Rather than maintaining two copies of the same wizard, this now
+  // opens the real, actively maintained work_order.html.
+  window.open('work_order.html', '_blank');
 };
 document.getElementById('tabOrders').onclick = ()=> showView('orders');
 document.getElementById('tabSchedule').onclick = ()=>{ showView('schedule'); loadSchedule(); };
