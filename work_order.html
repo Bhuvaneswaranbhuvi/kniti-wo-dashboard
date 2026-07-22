@@ -60,6 +60,9 @@
   .report-photo-grid img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
   .photo-slot{position:relative;border:1.5px dashed var(--line);border-radius:8px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#FAFAF8;cursor:pointer;}
   .photo-slot img{width:100%;height:100%;object-fit:cover;}
+  .file-thumb{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#F1F1EE;gap:2px;}
+  .file-thumb .file-icon{font-size:22px;}
+  .file-thumb .file-label{font-size:9px;color:var(--ink-soft,#5B6570);}
   .photo-slot .placeholder{text-align:center;color:var(--ink-soft);font-size:11.5px;padding:8px;}
   .photo-slot .placeholder .icon{font-size:22px;display:block;margin-bottom:4px;}
   .photo-slot input{position:absolute;inset:0;opacity:0;cursor:pointer;}
@@ -181,7 +184,7 @@
     step: 0,
     machineMode: 'single',
     numMachines: 2,
-    job: { wo:"", customer:"", location:"", machine:"", engineer:"", date:new Date().toISOString().slice(0,10), startDate:new Date().toISOString().slice(0,10), endDate:"",
+    job: { wo:"", customer:"", location:"", machine:"", engineer:"", date:localDateStr(), startDate:localDateStr(), endDate:"",
       machineDetails: null // { source, kmBrand, kmModel, kmSerial, cabinetSerial, tailscaleIp, cabinetType, kmGauge, kmDiameter, machineType } — filled by "Look up installation record"
     },
     before: { photos:[], comments:"" },
@@ -239,21 +242,42 @@
       {label:'Hole', captured:'no', rollNo:'', rotationNo:'', comment:'', custom:false}
     ];
   }
+  const CAM_TYPE_OPTS = ['Panther','Panther 2.0 (Small)','Green Cam','Blue Cam','Black Cam'];
+  const LENS_OPTS = ['5mm','6mm','8mm','12mm','16mm','Varifocal Lens'];
+  const LIGHT_TYPE_OPTS = ['IR','White'];
+  const LIGHT_MODEL_OPTS = ['CCTV IR 600mA','CCTV IR 900mA','600mm LED Strip Single Row','600mm LED Double Strip','800mm LED Single Strip','800mm LED Double Strip'];
+  const CAM_CABLE_OPTS = ['5m Import','3m Import','LAN','JST Cable','Other'];
+  const SLIPRING_OPTS = ['A2S','Through Bore','Brush-310','Brush-430'];
+  const SENSOR_TYPE_OPTS = ['NPN','PNP','Unknown'];
+  const SENSOR_MODE_OPTS = ['Separate','From Electrical Board','From Looping Sensor'];
+  function optHtml(list, selected){
+    return `<option value="">—</option>` + list.map(o=>`<option value="${esc(o)}" ${o===selected?'selected':''}>${esc(o)}</option>`).join('');
+  }
   function machineImageCats(m){
     const cats = IMAGE_CATS.slice();
-    cats.push(['cam1Light','Camera 1 Light']);
-    if(m.numCams==='2') cats.push(['cam2Light','Camera 2 Light']);
+    const n = parseInt(m.numCams,10) || 1;
+    for(let c=1;c<=n;c++){
+      cats.push([`cam${c}_camImg`, `Camera ${c} Photo`]);
+      cats.push([`cam${c}_lensImg`, `Camera ${c} Lens Photo`]);
+      cats.push([`cam${c}_lightImg`, `Camera ${c} Light Photo`]);
+    }
+    cats.push(['imageCoverageImg', 'Image Coverage Area']);
     return cats;
   }
 
   function mkMachine(){
     const images = {};
     IMAGE_CATS.forEach(([k])=>{ images[k] = []; });
-    images.cam1Light = []; images.cam2Light = [];
     return {
       machineType:"Single Jersey", numCams:"1",
       cabinetSerial:"", tailscaleIp:"", cabinetType:"SS",
       kmBrand:"", kmModel:"", kmSerial:"", kmName:"", kmGauge:"", kmDiameter:"", kmProgram:"",
+      sliprModel:"",
+      electricalInput:"", electricalLN:"", electricalLG:"", electricalNG:"",
+      internetIpMode:"open", internetIpAddress:"",
+      sensorType:"", sensorMode:"",
+      imageCoverageLength:"", imageCoverageBreadth:"",
+      wireRoutingComments:"",
       images, defects: defaultDefects(), expanded:true
     };
   }
@@ -268,6 +292,12 @@
     copy.kmModel = src.kmModel;
     copy.kmGauge = src.kmGauge;
     copy.kmDiameter = src.kmDiameter;
+    copy.sliprModel = src.sliprModel;
+    copy.internetIpMode = src.internetIpMode;
+    copy.sensorType = src.sensorType;
+    copy.sensorMode = src.sensorMode;
+    // carry over per-camera hardware choices (not photos) — same install kit, different machine
+    Object.keys(src).forEach(k=>{ if(/^cam\d+_(camType|lens|lightType|lightModel|cableType)$/.test(k)) copy[k] = src[k]; });
     state.machines.forEach(m=>{ m.expanded = false; });
     copy.expanded = true;
     state.machines.splice(idx+1, 0, copy);
@@ -290,7 +320,7 @@
       case 'machines': return 'Machines';
       case 'parts': return 'Parts Used';
       case 'training': return 'Training';
-      case 'suggestions': return 'Suggestions';
+      case 'suggestions': return 'Engineer Observations';
       case 'after': return t==='installation' ? 'Completed Install' : 'After Work';
       case 'report': return 'Report';
       case 'signoff': return 'Sign-Off';
@@ -300,6 +330,7 @@
     }
   }
 
+  function localDateStr(d){ d = d || new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
   function toast(msg, ms){
     const t = document.getElementById('toast') || (function(){
       const el = document.createElement('div'); el.id='toast'; el.className='toast'; document.body.appendChild(el); return el;
@@ -316,8 +347,28 @@
       r.readAsDataURL(file);
     });
   }
+  const MAX_FILE_BYTES = 50 * 1024 * 1024;
+  const DRAFT_SAFE_WARN_BYTES = 8 * 1024 * 1024;
+  // Any file type is accepted (up to 50MB); files over ~8MB get a heads-up
+  // since this order is saved as an offline draft until submitted, and very
+  // large attachments risk hitting the device's local storage limit before
+  // you're back online to submit.
+  function checkFileOk(file){
+    if(file.size > MAX_FILE_BYTES){
+      toast(`"${file.name}" is ${(file.size/1024/1024).toFixed(1)}MB — max allowed is 50MB.`, 5000);
+      return false;
+    }
+    if(file.size > DRAFT_SAFE_WARN_BYTES){
+      toast(`"${file.name}" is large (${(file.size/1024/1024).toFixed(1)}MB) — submit soon while online so it isn't stuck in an offline draft.`, 6000);
+    }
+    return true;
+  }
 
   function esc(s){ return (s||"").toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function isImageDataUrl(d){ return /^data:image\//.test(d||''); }
+  // Non-image attachments (PDF, docs, etc.) can't render via <img>; show a
+  // generic file tile instead so they don't appear broken.
+  function fileTileHtml(extraStyle){ return `<div class="file-thumb" style="${extraStyle||''}"><span class="file-icon">📄</span><span class="file-label">File</span></div>`; }
   function fmtTime(d){ return d.toLocaleString(undefined,{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }
   function val(id){ const el = document.getElementById(id); return el ? el.value : ''; }
 
@@ -377,29 +428,27 @@
 
   const WO_PREFIX = { installation:'IN', service:'SE', pm:'PM', rnd:'RN' };
   async function generateWoNumber(){
-    const today = new Date();
     const prefix = WO_PREFIX[state.orderType] || 'SE';
-    const yymm = String(today.getFullYear()).slice(2) + String(today.getMonth()+1).padStart(2,'0');
-    // Try the server first so numbers stay consistent with office-issued ones
+    // Prefer the atomic server-side counter — guarantees no duplicate numbers
+    // even if two engineers/offices generate one at the same moment.
     if(state.serverUrl && state.supabaseKey && state.authToken){
       try{
-        const like = `${prefix}-${yymm}-`;
-        const [ar, or] = await Promise.all([
-          fetch(`${state.serverUrl}/rest/v1/assignments?wo_number=like.${encodeURIComponent(like)}*&select=wo_number`, { headers: { 'apikey': state.supabaseKey, 'Authorization': `Bearer ${state.authToken}` } }),
-          fetch(`${state.serverUrl}/rest/v1/orders?wo_number=like.${encodeURIComponent(like)}*&select=wo_number`, { headers: { 'apikey': state.supabaseKey, 'Authorization': `Bearer ${state.authToken}` } })
-        ]);
-        const rows = [].concat(ar.ok ? await ar.json() : [], or.ok ? await or.json() : []);
-        let maxSeq = 0;
-        rows.forEach(r=>{ const m = String(r.wo_number||'').match(/-(\d+)$/); if(m) maxSeq = Math.max(maxSeq, parseInt(m[1],10)); });
-        return `${prefix}-${yymm}-${String(maxSeq+1).padStart(3,'0')}`;
-      }catch(e){ /* fall back to local counter below */ }
+        const res = await fetch(`${state.serverUrl}/rest/v1/rpc/next_wo_number`, {
+          method:'POST',
+          headers: { 'apikey': state.supabaseKey, 'Authorization': `Bearer ${state.authToken}`, 'Content-Type':'application/json' },
+          body: JSON.stringify({ p_type: state.orderType })
+        });
+        if(res.ok) return await res.json();
+      }catch(e){ /* fall back to local counter below (e.g. offline) */ }
     }
+    const today = new Date();
+    const yymm = String(today.getFullYear()).slice(2) + String(today.getMonth()+1).padStart(2,'0');
     const key = 'counter:wo:'+prefix+yymm;
     let seq = 1;
     const raw = await storageGetSafe(key);
     if(raw){ seq = (parseInt(raw,10)||0) + 1; }
     await storageSetSafe(key, String(seq));
-    return `${prefix}-${yymm}-${String(seq).padStart(3,'0')}`;
+    return `${prefix}-${yymm}-${String(seq).padStart(3,'0')}-LOCAL`;
   }
 
   // ---- Offline submission queue: if the server can't be reached, save the
@@ -1106,12 +1155,12 @@
     const tag = key==='before' ? 'Before' : 'After';
     const photos = d.photos.map((p,i)=>`
       <div class="photo-slot" data-key="${key}" data-idx="${i}">
-        <img src="${p}"><button class="remove-x" data-remove="${key}:${i}">✕</button><div class="photo-tag">${tag} ${i+1}</div>
+        ${isImageDataUrl(p) ? `<img src="${p}">` : fileTileHtml()}<button class="remove-x" data-remove="${key}:${i}">✕</button><div class="photo-tag">${tag} ${i+1}</div>
       </div>`).join('');
     const addTile = `
       <div class="photo-slot" data-key="${key}" data-idx="add">
         <div class="placeholder"><span class="icon">📷</span>Add photo</div>
-        <input type="file" accept="image/*" multiple data-photo-add="${key}">
+        <input type="file" accept="*/*" multiple data-photo-add="${key}">
       </div>`;
     return `
     <div class="card">
@@ -1196,7 +1245,7 @@
           <img class="part-photo-thumb" src="${p.photo ? p.photo : ''}" style="${p.photo?'':'display:none;'}" data-part-thumb="${i}">
           <button class="btn part-photo-btn btn-outline-sm">
             ${p.photo ? 'Change photo' : '📷 Add part photo'}
-            <input type="file" accept="image/*" data-part-photo="${i}">
+            <input type="file" accept="*/*" data-part-photo="${i}">
           </button>
         </div>
       </div>`).join('');
@@ -1215,15 +1264,16 @@
 
   // ---- Machines (installation) ----
   function renderPhotoCategory(mIdx, catKey, label){
-    const photos = state.machines[mIdx].images[catKey];
+    const m = state.machines[mIdx];
+    const photos = m.images[catKey] || (m.images[catKey] = []);
     const thumbs = photos.map((p,i)=>`
       <div class="photo-slot">
-        <img src="${p}"><button class="remove-x" data-mphoto-remove="${mIdx}:${catKey}:${i}">✕</button>
+        ${isImageDataUrl(p) ? `<img src="${p}">` : fileTileHtml()}<button class="remove-x" data-mphoto-remove="${mIdx}:${catKey}:${i}">✕</button>
       </div>`).join('');
     const addTile = `
       <div class="photo-slot">
         <div class="placeholder"><span class="icon">📷</span></div>
-        <input type="file" accept="image/*" multiple data-mphoto-add="${mIdx}:${catKey}">
+        <input type="file" accept="*/*" multiple data-mphoto-add="${mIdx}:${catKey}">
       </div>`;
     return `
     <div style="margin-top:12px;">
@@ -1268,7 +1318,28 @@
         <input type="text" data-defect="${i}:${di}:comment" value="${esc(d.comment)}" placeholder="${d.captured==='no' ? 'e.g. Not encountered during test run, sensor range limitation…' : 'Any additional notes'}">
       </div>`).join('');
 
-    const imageBlocks = machineImageCats(m).map(([k,label])=>renderPhotoCategory(i,k,label)).join('');
+    const imageBlocks = machineImageCats(m).filter(([k])=>!/^cam\d+_(camImg|lensImg|lightImg)$/.test(k) && k!=='imageCoverageImg').map(([k,label])=>renderPhotoCategory(i,k,label)).join('');
+    const numCamsInt = parseInt(m.numCams,10) || 1;
+    const camDetailBlocks = Array.from({length:numCamsInt}, (_,ci)=>{
+      const n = ci+1;
+      return `
+      <div class="card" style="background:#FAFAFA;">
+        <h3 style="margin:0 0 10px;">Camera ${n}</h3>
+        <div class="row2">
+          <div><label class="field-label" style="margin-top:0;">Camera Type</label><select data-machine-select="cam${n}_camType:${i}">${optHtml(CAM_TYPE_OPTS, m[`cam${n}_camType`])}</select></div>
+          <div><label class="field-label" style="margin-top:0;">Lens</label><select data-machine-select="cam${n}_lens:${i}">${optHtml(LENS_OPTS, m[`cam${n}_lens`])}</select></div>
+        </div>
+        ${renderPhotoCategory(i, `cam${n}_camImg`, `Camera ${n} Photo`)}
+        ${renderPhotoCategory(i, `cam${n}_lensImg`, `Lens ${n} Photo`)}
+        <div class="row2">
+          <div><label class="field-label">Light Type</label><select data-machine-select="cam${n}_lightType:${i}">${optHtml(LIGHT_TYPE_OPTS, m[`cam${n}_lightType`])}</select></div>
+          <div><label class="field-label">Light Model</label><select data-machine-select="cam${n}_lightModel:${i}">${optHtml(LIGHT_MODEL_OPTS, m[`cam${n}_lightModel`])}</select></div>
+        </div>
+        ${renderPhotoCategory(i, `cam${n}_lightImg`, `Light ${n} Photo`)}
+        <label class="field-label">Cable Used</label>
+        <select data-machine-select="cam${n}_cableType:${i}">${optHtml(CAM_CABLE_OPTS, m[`cam${n}_cableType`])}</select>
+      </div>`;
+    }).join('');
 
     return `
     <div class="card">
@@ -1305,8 +1376,7 @@
       </div>
       <label class="field-label">No. of Cameras</label>
       <select data-machine-select="numCams:${i}" style="max-width:140px;">
-        <option value="1" ${m.numCams==='1'?'selected':''}>1</option>
-        <option value="2" ${m.numCams==='2'?'selected':''}>2</option>
+        ${Array.from({length:12},(_,n)=>n+1).map(n=>`<option value="${n}" ${m.numCams===String(n)?'selected':''}>${n}</option>`).join('')}
       </select>
 
       <label class="field-label">Knitting Machine Brand</label>
@@ -1324,6 +1394,50 @@
       </div>
       <label class="field-label">Current Program Details</label>
       <textarea data-machine="kmProgram:${i}" placeholder="Program name/number, settings…">${esc(m.kmProgram)}</textarea>
+
+      <h2 style="margin-top:20px;">Camera &amp; Cable Details</h2>
+      ${camDetailBlocks}
+
+      <h2 style="margin-top:20px;">Slipring</h2>
+      <label class="field-label" style="margin-top:0;">Slipring Model</label>
+      <select data-machine-select="sliprModel:${i}">${optHtml(SLIPRING_OPTS, m.sliprModel)}</select>
+
+      <h2 style="margin-top:20px;">Electrical Readings</h2>
+      <div class="row2">
+        <div><label class="field-label" style="margin-top:0;">Input Voltage</label><input type="text" data-machine="electricalInput:${i}" value="${esc(m.electricalInput)}" placeholder="e.g. 230V"></div>
+        <div><label class="field-label" style="margin-top:0;">Line – Neutral Voltage</label><input type="text" data-machine="electricalLN:${i}" value="${esc(m.electricalLN)}"></div>
+      </div>
+      <div class="row2">
+        <div><label class="field-label">Line – Ground Voltage</label><input type="text" data-machine="electricalLG:${i}" value="${esc(m.electricalLG)}"></div>
+        <div>
+          <label class="field-label">Neutral – Ground Voltage</label>
+          <input type="text" data-machine="electricalNG:${i}" data-ng-check="${i}" value="${esc(m.electricalNG)}">
+        </div>
+      </div>
+      <div id="ngWarn_${i}" style="display:${(m.electricalNG!=='' && parseFloat(m.electricalNG)===0)?'':'none'};color:var(--danger,#B04A3D);font-size:12px;margin-top:4px;">⚠ 0V (or continuity) between Neutral &amp; Ground — verify wiring before proceeding, this indicates a possible earthing fault.</div>
+
+      <h2 style="margin-top:20px;">Internet IP</h2>
+      <select data-machine-select="internetIpMode:${i}">
+        <option value="open" ${m.internetIpMode==='open'?'selected':''}>Open IP (none assigned)</option>
+        <option value="assigned" ${m.internetIpMode==='assigned'?'selected':''}>IP Assigned</option>
+      </select>
+      ${m.internetIpMode==='assigned' ? `<input type="text" style="margin-top:8px;" data-machine="internetIpAddress:${i}" value="${esc(m.internetIpAddress)}" placeholder="192.168.x.x">` : ''}
+
+      <h2 style="margin-top:20px;">Sensor Connection</h2>
+      <div class="row2">
+        <div><label class="field-label" style="margin-top:0;">Type of Sensor</label><select data-machine-select="sensorType:${i}">${optHtml(SENSOR_TYPE_OPTS, m.sensorType)}</select></div>
+        <div><label class="field-label" style="margin-top:0;">Mode of Connection</label><select data-machine-select="sensorMode:${i}">${optHtml(SENSOR_MODE_OPTS, m.sensorMode)}</select></div>
+      </div>
+
+      <h2 style="margin-top:20px;">Image Coverage</h2>
+      <div class="row2">
+        <div><label class="field-label" style="margin-top:0;">Length (cm)</label><input type="text" data-machine="imageCoverageLength:${i}" value="${esc(m.imageCoverageLength)}"></div>
+        <div><label class="field-label" style="margin-top:0;">Breadth (cm)</label><input type="text" data-machine="imageCoverageBreadth:${i}" value="${esc(m.imageCoverageBreadth)}"></div>
+      </div>
+      ${renderPhotoCategory(i, 'imageCoverageImg', 'Image Coverage Photo')}
+
+      <h2 style="margin-top:20px;">Wire Routing Comments</h2>
+      <textarea data-machine="wireRoutingComments:${i}" placeholder="Notes on how cables/wires were routed...">${esc(m.wireRoutingComments)}</textarea>
 
       <h2 style="margin-top:20px;">Installation Photos</h2>
       ${imageBlocks}
@@ -1366,8 +1480,8 @@
 
       <label class="field-label">Photograph</label>
       <div class="photo-slot op-photo-slot">
-        ${op.photo ? `<img src="${op.photo}"><button class="remove-x" data-op-photo-remove="${i}">✕</button>` :
-          `<div class="placeholder"><span class="icon">📷</span></div><input type="file" accept="image/*" data-op-photo-add="${i}">`}
+        ${op.photo ? (isImageDataUrl(op.photo) ? `<img src="${op.photo}">` : fileTileHtml()) + `<button class="remove-x" data-op-photo-remove="${i}">✕</button>` :
+          `<div class="placeholder"><span class="icon">📷</span></div><input type="file" accept="*/*" data-op-photo-add="${i}">`}
       </div>
 
       <label class="field-label">Signature</label>
@@ -1403,7 +1517,7 @@
   function suggestionsStep(){
     return `
     <div class="card">
-      <h2>Suggestion to Factory</h2>
+      <h2>Engineer Observation</h2>
       <p class="sub">Recommendations for the mill based on this installation.</p>
       <textarea id="sugg_text" placeholder="e.g. Improve lighting near M-14, consider a dedicated LAN point…">${esc(state.suggestion)}</textarea>
     </div>
@@ -1464,12 +1578,17 @@
     const blocks = machineImageCats(m).filter(([k])=>m.images[k] && m.images[k].length).map(([k,label])=>`
       <p style="margin:10px 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);">${label}</p>
       <div class="report-photo-grid">
-        ${m.images[k].map(p=>`<img src="${p}">`).join('')}
+        ${m.images[k].map(p=>isImageDataUrl(p) ? `<img src="${p}">` : fileTileHtml()).join('')}
       </div>`).join('');
     return blocks || '<p style="color:var(--ink-soft);font-style:italic;">No installation photos recorded.</p>';
   }
 
   function machineReportBody(m){
+    const numCamsInt = parseInt(m.numCams,10) || 1;
+    const camRows = Array.from({length:numCamsInt},(_,ci)=>{
+      const n = ci+1;
+      return `<tr><th style="width:35%;">Camera ${n}</th><td>Type: ${esc(m[`cam${n}_camType`])||'—'} · Lens: ${esc(m[`cam${n}_lens`])||'—'} · Light: ${esc(m[`cam${n}_lightType`])||'—'} (${esc(m[`cam${n}_lightModel`])||'—'}) · Cable: ${esc(m[`cam${n}_cableType`])||'—'}</td></tr>`;
+    }).join('');
     return `
     <table>
       <tr><th style="width:35%;">Type of Machine</th><td>${esc(m.machineType)||'—'}</td></tr>
@@ -1484,6 +1603,17 @@
       <tr><th>Gauge / Diameter</th><td>${esc(m.kmGauge)||'—'} / ${esc(m.kmDiameter)||'—'}</td></tr>
     </table>
     <p style="margin-top:8px;"><b>Current program details:</b> ${esc(m.kmProgram)||'—'}</p>
+    <h4>Camera &amp; Cable Details</h4>
+    <table>${camRows}</table>
+    <h4>Slipring / Electrical / Network / Sensor</h4>
+    <table>
+      <tr><th style="width:35%;">Slipring Model</th><td>${esc(m.sliprModel)||'—'}</td></tr>
+      <tr><th>Electrical (Input / L-N / L-G / N-G)</th><td>${esc(m.electricalInput)||'—'} / ${esc(m.electricalLN)||'—'} / ${esc(m.electricalLG)||'—'} / ${esc(m.electricalNG)||'—'}${(m.electricalNG!=='' && parseFloat(m.electricalNG)===0) ? ' ⚠ possible earthing fault' : ''}</td></tr>
+      <tr><th>Internet IP</th><td>${m.internetIpMode==='assigned' ? ('Assigned — '+(esc(m.internetIpAddress)||'—')) : 'Open IP'}</td></tr>
+      <tr><th>Sensor</th><td>${esc(m.sensorType)||'—'} · ${esc(m.sensorMode)||'—'}</td></tr>
+      <tr><th>Image Coverage</th><td>${esc(m.imageCoverageLength)||'—'} cm × ${esc(m.imageCoverageBreadth)||'—'} cm</td></tr>
+      <tr><th>Wire Routing Comments</th><td>${esc(m.wireRoutingComments)||'—'}</td></tr>
+    </table>
     ${imageCategoriesReport(m)}
     <h4>Defect Testing</h4>
     <table>
@@ -1495,7 +1625,7 @@
   function operatorsReportBlock(){
     const rows = state.operators.filter(o=>o.name).map(o=>`
       <div class="op-row">
-        ${o.photo ? `<img class="op-photo" src="${o.photo}">` : '<div class="op-photo" style="width:50px;height:50px;background:#F1F1EE;border-radius:6px;"></div>'}
+        ${o.photo ? (isImageDataUrl(o.photo) ? `<img class="op-photo" src="${o.photo}">` : fileTileHtml('width:50px;height:50px;')) : '<div class="op-photo" style="width:50px;height:50px;background:#F1F1EE;border-radius:6px;"></div>'}
         <div style="flex:1;">
           <div style="font-weight:700;font-size:13px;">${esc(o.name)}</div>
           <div style="font-size:11.5px;color:var(--ink-soft);">${esc(o.topic)||'—'}</div>
@@ -1538,7 +1668,7 @@
       <h3>Training Provided</h3>
       ${operatorsReportBlock()}
 
-      <h3>Suggestion to Factory</h3>
+      <h3>Engineer Observation</h3>
       <p>${esc(state.suggestion)||'—'}</p>
 
       <h3>Maintenance Guide to Factory</h3>
@@ -1584,9 +1714,9 @@
 
       <h3>Before / After</h3>
       <p style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:4px;">Before (${b.photos.length})</p>
-      <div class="report-photo-grid">${b.photos.length ? b.photos.map(p=>`<img src="${p}">`).join('') : `<div style="aspect-ratio:1/1;background:#F1F1EE;border-radius:6px;"></div>`}</div>
+      <div class="report-photo-grid">${b.photos.length ? b.photos.map(p=>isImageDataUrl(p) ? `<img src="${p}">` : fileTileHtml()).join('') : `<div style="aspect-ratio:1/1;background:#F1F1EE;border-radius:6px;"></div>`}</div>
       <p style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin:14px 0 4px;">After (${a.photos.length})</p>
-      <div class="report-photo-grid">${a.photos.length ? a.photos.map(p=>`<img src="${p}">`).join('') : `<div style="aspect-ratio:1/1;background:#F1F1EE;border-radius:6px;"></div>`}</div>
+      <div class="report-photo-grid">${a.photos.length ? a.photos.map(p=>isImageDataUrl(p) ? `<img src="${p}">` : fileTileHtml()).join('') : `<div style="aspect-ratio:1/1;background:#F1F1EE;border-radius:6px;"></div>`}</div>
       <p style="margin-top:10px;"><b>Starting comments:</b> ${esc(b.comments)||'—'}</p>
       <p><b>Completion comments:</b> ${esc(a.comments)||'—'}</p>
 
@@ -2259,7 +2389,7 @@
       pdfSectionHeader(pm, 'Training Provided');
       pdfOperators(pm, imgMap, customerCopy);
 
-      pdfSectionHeader(pm, 'Suggestion to Factory');
+      pdfSectionHeader(pm, 'Engineer Observation');
       pdfText(pm, state.suggestion || '—', PDF_MARGIN, {size:8.5});
       pdfSectionHeader(pm, 'Maintenance Guide to Factory');
       pdfText(pm, state.maintenanceGuide || '—', PDF_MARGIN, {size:8.5});
@@ -2644,7 +2774,7 @@
       const addInp = document.querySelector(`[data-photo-add="${pkey}"]`);
       if(addInp) addInp.onchange = async (e)=>{
         const files = Array.from(e.target.files || []);
-        for(const file of files){ const url = await fileToDataUrl(file); state[pkey].photos.push(url); }
+        for(const file of files){ if(!checkFileOk(file)) continue; const url = await fileToDataUrl(file); state[pkey].photos.push(url); }
         render();
       };
       document.querySelectorAll(`[data-remove^="${pkey}:"]`).forEach(btn=>{
@@ -2689,7 +2819,7 @@
       document.querySelectorAll('[data-part-photo]').forEach(inp=>{
         inp.onchange = async (e)=>{
           const idx = parseInt(inp.getAttribute('data-part-photo'));
-          const file = e.target.files[0]; if(!file) return;
+          const file = e.target.files[0]; if(!file || !checkFileOk(file)) return;
           const url = await fileToDataUrl(file);
           state.parts[idx].photo = url;
           render();
@@ -2710,6 +2840,13 @@
       document.querySelectorAll('[data-machine]').forEach(inp=>{
         inp.oninput = ()=>{ const [f,idx] = inp.getAttribute('data-machine').split(':'); state.machines[parseInt(idx)][f] = inp.value; };
       });
+      document.querySelectorAll('[data-ng-check]').forEach(inp=>{
+        inp.addEventListener('input', ()=>{
+          const idx = inp.getAttribute('data-ng-check');
+          const warnEl = document.getElementById('ngWarn_'+idx);
+          if(warnEl) warnEl.style.display = (inp.value !== '' && parseFloat(inp.value) === 0) ? '' : 'none';
+        });
+      });
       document.querySelectorAll('[data-machine-select]').forEach(sel=>{
         sel.onchange = ()=>{ const [f,idx] = sel.getAttribute('data-machine-select').split(':'); state.machines[parseInt(idx)][f] = sel.value; render(); };
       });
@@ -2717,7 +2854,7 @@
         inp.onchange = async (e)=>{
           const [idx,cat] = inp.getAttribute('data-mphoto-add').split(':');
           const files = Array.from(e.target.files || []);
-          for(const file of files){ const url = await fileToDataUrl(file); state.machines[parseInt(idx)].images[cat].push(url); }
+          for(const file of files){ if(!checkFileOk(file)) continue; const url = await fileToDataUrl(file); state.machines[parseInt(idx)].images[cat].push(url); }
           render();
         };
       });
@@ -2772,7 +2909,7 @@
       document.querySelectorAll('[data-op-photo-add]').forEach(inp=>{
         inp.onchange = async (e)=>{
           const idx = parseInt(inp.getAttribute('data-op-photo-add'));
-          const file = e.target.files[0]; if(!file) return;
+          const file = e.target.files[0]; if(!file || !checkFileOk(file)) return;
           const url = await fileToDataUrl(file);
           state.operators[idx].photo = url;
           render();
@@ -2879,7 +3016,7 @@
     state.step = 0;
     state.machineMode = 'single';
     state.numMachines = 2;
-    state.job = { wo:"", customer:"", location:"", machine:"", engineer:"", date:new Date().toISOString().slice(0,10), startDate:new Date().toISOString().slice(0,10), endDate:"", machineDetails: null };
+    state.job = { wo:"", customer:"", location:"", machine:"", engineer:"", date:localDateStr(), startDate:localDateStr(), endDate:"", machineDetails: null };
     state.lookupResults = [];
     state.lookupLoading = false;
     state.lookupError = '';

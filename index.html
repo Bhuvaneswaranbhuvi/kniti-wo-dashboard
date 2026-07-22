@@ -528,10 +528,11 @@ function stars(n){ return '★'.repeat(n||0) + '☆'.repeat(5-(n||0)); }
 function renderTable(rows){
   const wrap = document.getElementById('tableWrap');
   if(!rows.length){ wrap.innerHTML = '<div class="empty">No orders submitted yet.</div>'; return; }
+  const isAdmin = ME.role === 'admin';
   wrap.innerHTML = `
   <table>
     <thead><tr>
-      <th>WO #</th><th>Type</th><th>Customer</th><th>Location</th><th>Engineer</th><th>Machines</th><th>CSAT</th><th>Submitted</th>
+      <th>WO #</th><th>Type</th><th>Customer</th><th>Location</th><th>Engineer</th><th>Machines</th><th>CSAT</th><th>Submitted</th>${isAdmin?'<th></th>':''}
     </tr></thead>
     <tbody>
       ${rows.map(r=>`
@@ -544,11 +545,26 @@ function renderTable(rows){
           <td>${r.machine_count||0}</td>
           <td class="stars">${stars(r.csat_rating)}</td>
           <td>${fmtDate(r.created_at)}</td>
+          ${isAdmin?`<td><button class="btn no-print" style="padding:5px 10px;font-size:11px;background:var(--danger,#B04A3D);" data-delete-order="${r.id}">Delete</button></td>`:''}
         </tr>`).join('')}
     </tbody>
   </table>`;
   wrap.querySelectorAll('tr.row').forEach(tr=>{
-    tr.onclick = ()=>openDetail(tr.getAttribute('data-id'));
+    tr.onclick = (e)=>{ if(e.target.closest('[data-delete-order]')) return; openDetail(tr.getAttribute('data-id')); };
+  });
+  wrap.querySelectorAll('[data-delete-order]').forEach(btn=>{
+    btn.onclick = async (e)=>{
+      e.stopPropagation();
+      const id = btn.getAttribute('data-delete-order');
+      const ok = await confirmPasswordModal('permanently delete this submitted order');
+      if(!ok) return;
+      btn.textContent = 'Deleting…'; btn.disabled = true;
+      const res = await fetch(`${SUPA_URL}/rest/v1/orders?id=eq.${id}`, { method:'DELETE', headers: supaHeaders({'Prefer':'return=representation'}) });
+      let deleted = [];
+      try{ deleted = await res.json(); }catch(err){}
+      if(res.ok && Array.isArray(deleted) && deleted.length){ loadTable(); }
+      else { alert('Delete failed — not admin, or already removed.'); btn.textContent = 'Delete'; btn.disabled = false; }
+    };
   });
 }
 
@@ -686,7 +702,7 @@ async function openDetail(id){
           ${o.sig?`<img src="${o.sig}" style="width:80px;height:32px;object-fit:contain;border-bottom:1px solid var(--ink);">`:''}
         </div>`).join('') || '<p style="color:var(--ink-soft);font-style:italic;font-size:13px;">None recorded</p>'}
     </div>
-    <div class="section"><h3>Suggestion to Factory</h3><p style="font-size:13px;">${esc(d.suggestion)||'—'}</p></div>
+    <div class="section"><h3>Engineer Observation</h3><p style="font-size:13px;">${esc(d.suggestion)||'—'}</p></div>
     <div class="section"><h3>Maintenance Guide</h3><p style="font-size:13px;">${esc(d.maintenanceGuide)||'—'}</p></div>`;
   } else {
     const b = d.before||{photos:[]}, a = d.after||{photos:[]};
@@ -744,26 +760,24 @@ async function fetchAssignments(params){
   return res.json();
 }
 
-// ---------- Order numbering: IN/SE/PM/RN - YYMM - seq ----------
+// ---------- Order numbering: IN/SE/PM/RN - YYMM - seq (atomic, server-side) ----------
 const TYPE_PREFIX = { installation:'IN', service:'SE', pm:'PM', rnd:'RN' };
 const TYPE_LABEL = { installation:'Install', service:'Service', pm:'PM Visit', rnd:'R&D' };
 function yymm(){ const d = new Date(); return String(d.getFullYear()).slice(2) + String(d.getMonth()+1).padStart(2,'0'); }
 async function nextWoNumber(type){
-  const prefix = `${TYPE_PREFIX[type]||'SE'}-${yymm()}-`;
-  // check both assignments and completed orders for this month's numbers
-  const [ar, or] = await Promise.all([
-    fetch(`${SUPA_URL}/rest/v1/assignments?wo_number=like.${encodeURIComponent(prefix)}*&select=wo_number`, { headers: supaHeaders() }),
-    fetch(`${SUPA_URL}/rest/v1/orders?wo_number=like.${encodeURIComponent(prefix)}*&select=wo_number`, { headers: supaHeaders() })
-  ]);
-  const rows = [].concat(ar.ok ? await ar.json() : [], or.ok ? await or.json() : []);
-  let maxSeq = 0;
-  rows.forEach(r=>{ const m = String(r.wo_number||'').match(/-(\d+)$/); if(m) maxSeq = Math.max(maxSeq, parseInt(m[1],10)); });
-  return prefix + String(maxSeq+1).padStart(3,'0');
+  const res = await fetch(`${SUPA_URL}/rest/v1/rpc/next_wo_number`, {
+    method:'POST', headers: supaHeaders({'Content-Type':'application/json'}), body: JSON.stringify({p_type: type})
+  });
+  if(!res.ok){
+    let detail = '';
+    try{ const j = await res.json(); detail = j.message || j.hint || ''; }catch(e){}
+    throw new Error(detail || 'Could not get an order number — run wo-numbering-v7.sql in Supabase.');
+  }
+  return await res.json();
 }
 async function refreshWoPreview(){
   const el = document.getElementById('woPreview');
-  el.textContent = '…';
-  try{ el.textContent = await nextWoNumber(document.getElementById('aType').value); }catch(e){ el.textContent = ''; }
+  el.textContent = '(preview shown at save)';
 }
 
 // ---------- Mills, engineers, production for dropdowns ----------
@@ -1001,7 +1015,8 @@ document.getElementById('tabSchedule').onclick = ()=>{ showView('schedule'); loa
 document.getElementById('tabAssignments').onclick = async ()=>{ showView('assignments'); await loadScheduleRefs(); refreshWoPreview(); loadAssignments(); };
 document.getElementById('tabAdmin').onclick = ()=>{ showView('admin'); loadAdmin(); };
 
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function localDateStr(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function isOverdue(a){
   if(a.status==='completed' || a.status==='cancelled') return false;
   if(!a.scheduled_date) return false;
@@ -1022,7 +1037,7 @@ function renderCalendar(assignments){
     const stop = new Date(end + 'T00:00:00');
     let guard = 0;
     while(cur <= stop && guard < 60){
-      const ds = cur.toISOString().slice(0,10);
+      const ds = localDateStr(cur);
       (byDate[ds] = byDate[ds] || []).push(a);
       cur.setDate(cur.getDate()+1); guard++;
     }
@@ -1790,7 +1805,7 @@ async function generatePdfBytes(d, customerCopy){
     pdfSectionHeader(pm, 'Training Provided');
     pdfOperators(pm, imgMap, customerCopy, d);
 
-    pdfSectionHeader(pm, 'Suggestion to Factory');
+    pdfSectionHeader(pm, 'Engineer Observation');
     pdfText(pm, d.suggestion || '—', PDF_MARGIN, {size:8.5});
     pdfSectionHeader(pm, 'Maintenance Guide to Factory');
     pdfText(pm, d.maintenanceGuide || '—', PDF_MARGIN, {size:8.5});
@@ -1975,7 +1990,7 @@ if(SUPA_URL && SUPA_KEY && AUTH_TOKEN && ME.id){
     step: 0,
     machineMode: 'single',
     numMachines: 2,
-    job: { wo:"", customer:"", location:"", machine:"", engineer:"", date:new Date().toISOString().slice(0,10), startDate:new Date().toISOString().slice(0,10), endDate:"",
+    job: { wo:"", customer:"", location:"", machine:"", engineer:"", date:todayStr(), startDate:todayStr(), endDate:"",
       machineDetails: null // { source, kmBrand, kmModel, kmSerial, cabinetSerial, tailscaleIp, cabinetType, kmGauge, kmDiameter, machineType } — filled by "Look up installation record"
     },
     before: { photos:[], comments:"" },
@@ -2084,7 +2099,7 @@ if(SUPA_URL && SUPA_KEY && AUTH_TOKEN && ME.id){
       case 'machines': return 'Machines';
       case 'parts': return 'Parts Used';
       case 'training': return 'Training';
-      case 'suggestions': return 'Suggestions';
+      case 'suggestions': return 'Engineer Observations';
       case 'after': return t==='installation' ? 'Completed Install' : 'After Work';
       case 'report': return 'Report';
       case 'signoff': return 'Sign-Off';
@@ -3155,7 +3170,7 @@ if(SUPA_URL && SUPA_KEY && AUTH_TOKEN && ME.id){
   function suggestionsStep(){
     return `
     <div class="card">
-      <h2>Suggestion to Factory</h2>
+      <h2>Engineer Observation</h2>
       <p class="sub">Recommendations for the mill based on this installation.</p>
       <textarea id="sugg_text" placeholder="e.g. Improve lighting near M-14, consider a dedicated LAN point…">${esc(state.suggestion)}</textarea>
     </div>
@@ -3290,7 +3305,7 @@ if(SUPA_URL && SUPA_KEY && AUTH_TOKEN && ME.id){
       <h3>Training Provided</h3>
       ${operatorsReportBlock()}
 
-      <h3>Suggestion to Factory</h3>
+      <h3>Engineer Observation</h3>
       <p>${esc(state.suggestion)||'—'}</p>
 
       <h3>Maintenance Guide to Factory</h3>
@@ -4011,7 +4026,7 @@ if(SUPA_URL && SUPA_KEY && AUTH_TOKEN && ME.id){
       pdfSectionHeader(pm, 'Training Provided');
       pdfOperators(pm, imgMap, customerCopy);
 
-      pdfSectionHeader(pm, 'Suggestion to Factory');
+      pdfSectionHeader(pm, 'Engineer Observation');
       pdfText(pm, state.suggestion || '—', PDF_MARGIN, {size:8.5});
       pdfSectionHeader(pm, 'Maintenance Guide to Factory');
       pdfText(pm, state.maintenanceGuide || '—', PDF_MARGIN, {size:8.5});
@@ -4616,7 +4631,7 @@ if(SUPA_URL && SUPA_KEY && AUTH_TOKEN && ME.id){
     state.step = 0;
     state.machineMode = 'single';
     state.numMachines = 2;
-    state.job = { wo:"", customer:"", location:"", machine:"", engineer:"", date:new Date().toISOString().slice(0,10), startDate:new Date().toISOString().slice(0,10), endDate:"", machineDetails: null };
+    state.job = { wo:"", customer:"", location:"", machine:"", engineer:"", date:todayStr(), startDate:todayStr(), endDate:"", machineDetails: null };
     state.lookupResults = [];
     state.lookupLoading = false;
     state.lookupError = '';

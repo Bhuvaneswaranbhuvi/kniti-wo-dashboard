@@ -57,6 +57,9 @@
   .thumbRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
   .thumbRow .thumb{position:relative;width:64px;height:64px;}
   .thumbRow .thumb img{width:100%;height:100%;object-fit:cover;border-radius:5px;border:1px solid var(--line);}
+  .thumbRow .thumb.file-thumb{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#F1F1EE;border:1px solid var(--line);border-radius:5px;text-align:center;padding:2px;}
+  .thumbRow .thumb.file-thumb .file-icon{font-size:20px;}
+  .thumbRow .thumb.file-thumb .file-name{font-size:8px;color:var(--ink-soft);word-break:break-all;line-height:1.1;}
   .thumbRow .thumb .rm{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;}
   .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
   .imgs img{width:64px;height:64px;object-fit:cover;border-radius:5px;border:1px solid var(--line);cursor:zoom-in;}
@@ -143,7 +146,8 @@
     <div id="bomRows"></div>
     <button class="btn ghost sm" onclick="PD.addBomRow()">+ Add Item</button>
     <h4>Mechanical Diagrams / Packing Photos</h4>
-    <input type="file" id="pImages" accept="image/*" multiple>
+    <label class="f">Mechanical Diagrams / Packing Photos (any file type, up to 50MB each)</label>
+    <input type="file" id="pImages" accept="*/*" multiple>
     <div class="thumbRow" id="pThumbs"></div>
     <label class="f">Notes</label>
     <textarea id="pNotes" rows="2"></textarea>
@@ -196,7 +200,7 @@ const PD = window.PD = { mills: [], plans: [], editingId: null, pendingImages: [
 const STATUS_LABELS = { planned:'Planned', in_production:'In Production', ready:'Ready', dispatched:'Dispatched', delivered:'Delivered' };
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtDate(s){ if(!s) return '—'; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}); }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 if(!AUTH_TOKEN || !ME.id){
   document.getElementById('notSignedIn').style.display = '';
@@ -313,6 +317,7 @@ PD.addBomRow = function(b){
   wrap.appendChild(div);
 };
 
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 async function compressImage(file){
   const maxDim = 1600, quality = 0.72;
   const dataUrl = await new Promise((res,rej)=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(file); });
@@ -327,31 +332,53 @@ async function compressImage(file){
   canvas.getContext('2d').drawImage(img, 0, 0, width, height);
   return canvas.toDataURL('image/jpeg', quality);
 }
+function readFileRaw(file){
+  return new Promise((res,rej)=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+}
+async function fileToUploadable(file){
+  if(file.size > MAX_FILE_BYTES) throw new Error(`"${file.name}" is ${(file.size/1024/1024).toFixed(1)}MB — max allowed is 50MB.`);
+  if(file.type && file.type.startsWith('image/')){
+    try{ return { dataUrl: await compressImage(file), name: file.name }; }
+    catch(e){ return { dataUrl: await readFileRaw(file), name: file.name }; }
+  }
+  return { dataUrl: await readFileRaw(file), name: file.name };
+}
 document.getElementById('pImages').addEventListener('change', async function(e){
   const files = Array.from(e.target.files||[]);
-  for(const f of files){ try{ PD.pendingImages.push(await compressImage(f)); }catch(err){} }
+  const errEl = document.getElementById('pErr');
+  for(const f of files){
+    try{ PD.pendingImages.push(await fileToUploadable(f)); }
+    catch(err){ errEl.textContent = err.message; }
+  }
   renderModalThumbs(); e.target.value = '';
 });
+function isImageDataUrl(d){ return /^data:image\//.test(d); }
 function renderModalThumbs(){
-  const ex = PD.existingImages.map((u,i)=>`<div class="thumb"><img src="${u}"><button class="rm" onclick="PD.rmExisting(${i})">&times;</button></div>`).join('');
-  const nw = PD.pendingImages.map((d,i)=>`<div class="thumb"><img src="${d}"><button class="rm" onclick="PD.rmPending(${i})">&times;</button></div>`).join('');
+  const thumbHtml = (u, onRemove) => isImageDataUrl(u.dataUrl||u)
+    ? `<div class="thumb"><img src="${u.dataUrl||u}"><button class="rm" onclick="${onRemove}">&times;</button></div>`
+    : `<div class="thumb file-thumb" title="${esc(u.name||'file')}"><span class="file-icon">📄</span><span class="file-name">${esc((u.name||'file').slice(0,14))}</span><button class="rm" onclick="${onRemove}">&times;</button></div>`;
+  const ex = PD.existingImages.map((u,i)=>thumbHtml({dataUrl:u, name:u.split('/').pop()}, `PD.rmExisting(${i})`)).join('');
+  const nw = PD.pendingImages.map((u,i)=>thumbHtml(u, `PD.rmPending(${i})`)).join('');
   document.getElementById('pThumbs').innerHTML = ex + nw;
 }
 PD.rmExisting = function(i){ PD.existingImages.splice(i,1); renderModalThumbs(); };
 PD.rmPending = function(i){ PD.pendingImages.splice(i,1); renderModalThumbs(); };
 
-async function uploadImage(dataUrl, folder, idx){
-  const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+async function uploadImage(fileObj, folder, idx){
+  const dataUrl = fileObj.dataUrl || fileObj;
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
   if(!match) return null;
-  const mime = match[1]; const ext = mime === 'jpeg' ? 'jpg' : mime;
+  const mime = match[1];
+  let ext = (fileObj.name && fileObj.name.includes('.')) ? fileObj.name.split('.').pop().toLowerCase() : (mime.split('/')[1] || 'bin');
+  if(ext === 'jpeg') ext = 'jpg';
   const binStr = atob(match[2]);
   const bytes = new Uint8Array(binStr.length);
   for(let i=0;i<binStr.length;i++) bytes[i] = binStr.charCodeAt(i);
-  const path = `${folder}/img_${Date.now()}_${idx}.${ext}`;
+  const path = `${folder}/file_${Date.now()}_${idx}.${ext}`;
   const res = await fetch(`${SUPA_URL}/storage/v1/object/photos/${path}`, {
-    method:'POST', headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': `image/${mime}` }, body: bytes
+    method:'POST', headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': mime }, body: bytes
   });
-  if(!res.ok) throw new Error('Photo upload failed');
+  if(!res.ok) throw new Error('File upload failed');
   return `${SUPA_URL}/storage/v1/object/public/photos/${path}`;
 }
 

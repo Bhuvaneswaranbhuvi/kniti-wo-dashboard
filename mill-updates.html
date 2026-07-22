@@ -86,6 +86,9 @@
   .thumbRow .thumb{position:relative;width:64px;height:64px;}
   .thumbRow .thumb img{width:100%;height:100%;object-fit:cover;border-radius:5px;border:1px solid var(--line);}
   .thumbRow .thumb .rm{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;}
+  .thumbRow .thumb.file-thumb{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#F1F1EE;border:1px solid var(--line);border-radius:5px;text-align:center;padding:2px;}
+  .thumbRow .thumb.file-thumb .file-icon{font-size:20px;}
+  .thumbRow .thumb.file-thumb .file-name{font-size:8px;color:var(--ink-soft);word-break:break-all;line-height:1.1;}
   .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:300;cursor:zoom-out;}
   .lightbox img{max-width:92%;max-height:92%;}
   .sub{font-size:12.5px;color:var(--ink-soft);}
@@ -235,6 +238,10 @@
     <h2 id="entryModalTitle">Add Entry</h2>
     <label class="f">Machine (optional — leave blank for a mill-wide item)</label>
     <select id="eMachine" style="width:100%;"></select>
+    <div id="eIssueTypeWrap" style="display:none;">
+      <label class="f">Issue Type</label>
+      <select id="eIssueType" style="width:100%;">${ISSUE_TYPE_OPTS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+    </div>
     <label class="f">Title</label>
     <input type="text" id="eTitle" style="width:100%;" placeholder="Short summary">
     <label class="f">Details</label>
@@ -256,8 +263,8 @@
       <label class="f">Visit Date</label>
       <input type="date" id="eVisitDate" style="width:100%;">
     </div>
-    <label class="f">Photos</label>
-    <input type="file" id="eImages" accept="image/*" multiple capture="environment">
+    <label class="f">Photos / Files (any file type, up to 50MB each)</label>
+    <input type="file" id="eImages" accept="*/*" multiple>
     <div class="thumbRow" id="eThumbs"></div>
     <div class="err" id="eErr"></div>
     <div class="row" style="margin-top:14px;">
@@ -285,7 +292,7 @@
       <option value="pain_point">Customer Pain Points only</option>
       <option value="requirement">Customer Requirements only</option>
       <option value="todo">To-Dos only</option>
-      <option value="suggestion">Engineer Suggestions only</option>
+      <option value="suggestion">Engineer Observations only</option>
       <option value="visit_log">Visit Logs only</option>
       <option value="machines">Machines only</option>
       <option value="production">Production &amp; Dispatch only</option>
@@ -391,12 +398,16 @@ const OPTS = {
   cable: ['LAN','5m Shielded','3m Shielded','5m - NTech','2m - NTech']
 };
 const CATEGORY_LABELS = {
-  todo: 'To-Dos', pain_point: 'Customer Pain Points', suggestion: 'Engineer Suggestions',
-  requirement: 'Customer Requirements', visit_log: 'Visit Logs & Reports'
+  todo: 'To-Dos', pain_point: 'Customer Pain Points', suggestion: 'Engineer Observations',
+  requirement: 'Customer Requirements', visit_log: 'Visit Logs & Reports', issue: 'Issues Faced'
 };
-const TABS = ['todo','pain_point','suggestion','requirement','visit_log','work_orders','production','machines'];
+const TABS = ['todo','pain_point','suggestion','requirement','visit_log','issue','work_orders','production','machines'];
 const TAB_LABELS = Object.assign({}, CATEGORY_LABELS, { work_orders: 'Work Orders', production: 'Production & Dispatch', machines: 'Machines' });
 const PROD_STATUS_LABELS = { planned:'Planned', in_production:'In Production', ready:'Ready', dispatched:'Dispatched', delivered:'Delivered' };
+const ISSUE_TYPE_OPTS = [
+  ['mechanical','Mechanical'], ['electrical','Electrical'], ['customer_miscommunication','Customer Miscommunication'],
+  ['accommodation','Accommodation'], ['transport','Transport']
+];
 
 const MU = window.MU = {
   mills: [], machines: [], updates: [], orders: [], assignments: [], production: [],
@@ -408,6 +419,12 @@ const MU = window.MU = {
 };
 
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const IMAGE_EXT_RE = /\.(jpe?g|png|gif|webp|bmp|svg)$/i;
+function attachmentTileHtml(url, onClick){
+  if(IMAGE_EXT_RE.test(url)) return `<img src="${url}" onclick="${onClick}">`;
+  const name = url.split('/').pop().split('?')[0];
+  return `<a href="${url}" target="_blank" rel="noopener" class="file-attachment" title="${esc(name)}">📄 ${esc(name.length>16?name.slice(0,16)+'…':name)}</a>`;
+}
 function fmtDate(s){ if(!s) return '—'; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}); }
 function normName(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
 function parseFlexibleDate(raw){
@@ -416,7 +433,7 @@ function parseFlexibleDate(raw){
     // Excel serial date (days since 1899-12-30)
     const utcDays = Math.floor(raw - 25569);
     const d = new Date(utcDays * 86400 * 1000);
-    return isNaN(d) ? null : d.toISOString().slice(0,10);
+    return isNaN(d) ? null : d.toISOString().slice(0,10); // this Date is inherently UTC-based (epoch math), safe to format via toISOString
   }
   const s = String(raw).trim();
   if(!s) return null;
@@ -427,10 +444,13 @@ function parseFlexibleDate(raw){
     if(parseInt(mo,10) > 12 && parseInt(d,10) <= 12) [d, mo] = [mo, d]; // swap if it's actually MM/DD/YYYY
     return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
   }
+  // Last-resort fallback: parse with the local calendar reading, not toISOString,
+  // to avoid an off-by-one when the local timezone is ahead of UTC (e.g. IST).
   const parsed = new Date(s);
-  return isNaN(parsed) ? null : parsed.toISOString().slice(0,10);
+  if(isNaN(parsed)) return null;
+  return `${parsed.getFullYear()}-${String(parsed.getMonth()+1).padStart(2,'0')}-${String(parsed.getDate()).padStart(2,'0')}`;
 }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function optHtml(list, selected){
   return `<option value="">—</option>` + list.map(o=>`<option value="${esc(o)}" ${o===selected?'selected':''}>${esc(o)}</option>`).join('');
 }
@@ -578,6 +598,7 @@ function renderMillDetail(){
         <div class="row no-print">
           <button class="btn ghost" onclick="MU.showOverview()">◀ All Mills</button>
           <button class="btn ghost" onclick="MU.openMillModal('${mill.id}')">Edit Mill</button>
+          ${ME.role==='admin' ? `<button class="btn ghost" style="color:var(--danger);border-color:var(--danger);" onclick="MU.deleteMill('${mill.id}','${esc(mill.name).replace(/'/g,"\\'")}')">Delete Mill</button>` : ''}
         </div>
       </div>
       <p class="sub" style="margin:6px 0 0;">${esc(mill.area||'—')} ${mill.address?(' • '+esc(mill.address)):''}${contactsLine(mill)}</p>
@@ -704,7 +725,7 @@ function renderEntryCard(e){
         <div class="progressBar"><div style="width:${e.progress||0}%;"></div></div>
         ${canEdit?`<input type="range" min="0" max="100" step="5" value="${e.progress||0}" class="no-print" style="width:100%;margin-top:4px;" onchange="MU.setProgress('${e.id}', this.value)">`:''}
       ` : ''}
-      ${(e.images||[]).length ? `<div class="imgs">${e.images.map(u=>`<img src="${u}" onclick="MU.showLightbox('${u}')">`).join('')}</div>` : ''}
+      ${(e.images||[]).length ? `<div class="imgs">${e.images.map(u=>attachmentTileHtml(u, `MU.showLightbox('${u}')`)).join('')}</div>` : ''}
       <div class="commentsWrap">
         ${comments.length ? comments.map(c=>`<div class="commentRow"><b>${esc(c.by_name||'Someone')}</b> <span class="sub">${fmtDate(c.at)}</span><div>${esc(c.text)}</div></div>`).join('') : ''}
         <div class="row no-print" style="margin-top:6px;">
@@ -856,7 +877,7 @@ function renderProductionTab(mill){
       ${bom.length?`<table style="margin-top:8px;"><thead><tr><th>Item</th><th>Qty</th><th>Status</th><th>Note</th></tr></thead>
         <tbody>${bom.map(b=>`<tr><td>${esc(b.item)}</td><td>${esc(b.qty)} ${esc(b.unit||'')}</td><td><span class="chip ${esc(b.status||'pending')}">${esc(b.status||'pending')}</span></td><td>${esc(b.note||'')}</td></tr>`).join('')}</tbody></table>`:''}
       ${shortage.length?`<p class="sub" style="color:var(--danger);margin:8px 0 0;">⚠ ${shortage.length} shortage item(s) on this shipment</p>`:''}
-      ${(p.images||[]).length ? `<div class="imgs" style="margin-top:8px;">${p.images.map(u=>`<img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:5px;border:1px solid var(--line);cursor:zoom-in;" onclick="MU.showLightbox('${u}')">`).join('')}</div>` : ''}
+      ${(p.images||[]).length ? `<div class="imgs" style="margin-top:8px;">${p.images.map(u=>attachmentTileHtml(u, `MU.showLightbox('${u}')`)).join('')}</div>` : ''}
     </div>`;
   }).join('') : `<div class="empty">No production plans or dispatches for this mill yet.</div>`;
   return `
@@ -899,6 +920,27 @@ function renderMachinesTab(mill){
       </tr>`;}).join('')}</tbody></table></div>`
     : `<div class="empty">No machines logged for this mill yet.</div>`}`;
 }
+MU.deleteMill = async function(id, name){
+  const typed = prompt(`This permanently deletes "${name}" and ALL of its machines, mill updates, and production/dispatch records.\n\nType the mill name exactly to confirm:`);
+  if(typed === null) return;
+  if(typed.trim() !== name){ alert('Name did not match — nothing was deleted.'); return; }
+  const res = await fetch(`${SUPA_URL}/rest/v1/mills?id=eq.${id}`, { method:'DELETE', headers: supaHeaders({'Prefer':'return=representation'}) });
+  let deleted = [];
+  try{ deleted = await res.json(); }catch(e){}
+  if(res.ok && Array.isArray(deleted) && deleted.length){
+    MU.mills = MU.mills.filter(x=>x.id!==id);
+    MU.machines = MU.machines.filter(x=>x.mill_id!==id);
+    MU.updates = MU.updates.filter(x=>x.mill_id!==id);
+    MU.production = MU.production.filter(x=>x.mill_id!==id);
+    if(MU.currentMillId===id) MU.currentMillId = null;
+    renderMillList(); renderMillDetail();
+  } else if(res.ok){
+    alert('Not deleted — mill deletion is admin-only. Check your role in the dashboard Admin tab.');
+  } else {
+    alert('Delete failed (HTTP '+res.status+').');
+  }
+};
+
 MU.deleteMachine = async function(id){
   if(!confirm('Delete this machine? Its entries stay but lose the machine tag.')) return;
   const res = await fetch(`${SUPA_URL}/rest/v1/machines?id=eq.${id}`, { method:'DELETE', headers: supaHeaders({'Prefer':'return=representation'}) });
@@ -1136,6 +1178,7 @@ MU.openEntryModal = function(category, editId){
   document.getElementById('entryModal').classList.add('show');
 };
 
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 async function compressImage(file, maxDim, quality){
   maxDim = maxDim || 1600; quality = quality || 0.72;
   const dataUrl = await new Promise((res,rej)=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(file); });
@@ -1150,31 +1193,58 @@ async function compressImage(file, maxDim, quality){
   canvas.getContext('2d').drawImage(img, 0, 0, width, height);
   return canvas.toDataURL('image/jpeg', quality);
 }
+function readFileRaw(file){
+  return new Promise((res,rej)=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+}
+// Images get compressed (as before); any other file type (PDF, video, doc...)
+// is uploaded as-is, up to 50MB. Returns {dataUrl, name} or throws with a
+// message the caller can surface (oversize / unreadable file).
+async function fileToUploadable(file){
+  if(file.size > MAX_FILE_BYTES){
+    throw new Error(`"${file.name}" is ${(file.size/1024/1024).toFixed(1)}MB — max allowed is 50MB.`);
+  }
+  if(file.type && file.type.startsWith('image/')){
+    try{ return { dataUrl: await compressImage(file), name: file.name }; }
+    catch(e){ return { dataUrl: await readFileRaw(file), name: file.name }; } // fallback: some images (e.g. heic) can't decode via canvas
+  }
+  return { dataUrl: await readFileRaw(file), name: file.name };
+}
 document.getElementById('eImages').addEventListener('change', async function(e){
   const files = Array.from(e.target.files || []);
-  for(const f of files){ try{ MU.pendingImages.push(await compressImage(f)); }catch(err){} }
+  const errEl = document.getElementById('eErr');
+  for(const f of files){
+    try{ MU.pendingImages.push(await fileToUploadable(f)); }
+    catch(err){ errEl.textContent = err.message; }
+  }
   renderEntryThumbs(); e.target.value = '';
 });
+function isImageDataUrl(d){ return /^data:image\//.test(d); }
 function renderEntryThumbs(){
-  const ex = (MU.existingEntryImages||[]).map((u,i)=>`<div class="thumb"><img src="${u}"><button class="rm" onclick="MU.removeExistingEntryImg(${i})">&times;</button></div>`).join('');
-  const nw = MU.pendingImages.map((d,i)=>`<div class="thumb"><img src="${d}"><button class="rm" onclick="MU.removeThumb(${i})">&times;</button></div>`).join('');
+  const thumbHtml = (u, onRemove) => isImageDataUrl(u.dataUrl||u)
+    ? `<div class="thumb"><img src="${u.dataUrl||u}"><button class="rm" onclick="${onRemove}">&times;</button></div>`
+    : `<div class="thumb file-thumb" title="${esc(u.name||'file')}"><span class="file-icon">📄</span><span class="file-name">${esc((u.name||'file').slice(0,14))}</span><button class="rm" onclick="${onRemove}">&times;</button></div>`;
+  const ex = (MU.existingEntryImages||[]).map((u,i)=>thumbHtml({dataUrl:u, name:u.split('/').pop()}, `MU.removeExistingEntryImg(${i})`)).join('');
+  const nw = MU.pendingImages.map((u,i)=>thumbHtml(u, `MU.removeThumb(${i})`)).join('');
   document.getElementById('eThumbs').innerHTML = ex + nw;
 }
 MU.removeExistingEntryImg = function(i){ MU.existingEntryImages.splice(i,1); renderEntryThumbs(); };
 MU.removeThumb = function(i){ MU.pendingImages.splice(i,1); renderEntryThumbs(); };
 
-async function uploadImageToBucket(dataUrl, folder, idx){
-  const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+async function uploadImageToBucket(fileObj, folder, idx){
+  const dataUrl = fileObj.dataUrl || fileObj; // back-compat if a raw string sneaks in
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
   if(!match) return null;
-  const mime = match[1]; const ext = mime === 'jpeg' ? 'jpg' : mime;
+  const mime = match[1];
+  let ext = (fileObj.name && fileObj.name.includes('.')) ? fileObj.name.split('.').pop().toLowerCase() : (mime.split('/')[1] || 'bin');
+  if(ext === 'jpeg') ext = 'jpg';
   const binStr = atob(match[2]);
   const bytes = new Uint8Array(binStr.length);
   for(let i=0;i<binStr.length;i++) bytes[i] = binStr.charCodeAt(i);
-  const path = `${folder}/img_${Date.now()}_${idx}.${ext}`;
+  const path = `${folder}/file_${Date.now()}_${idx}.${ext}`;
   const res = await fetch(`${SUPA_URL}/storage/v1/object/photos/${path}`, {
-    method:'POST', headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': `image/${mime}` }, body: bytes
+    method:'POST', headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': mime }, body: bytes
   });
-  if(!res.ok) throw new Error('Photo upload failed');
+  if(!res.ok) throw new Error('File upload failed');
   return `${SUPA_URL}/storage/v1/object/public/photos/${path}`;
 }
 

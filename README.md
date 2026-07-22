@@ -17,7 +17,9 @@ Supabase URL + anon key are baked in; localStorage settings override them if pre
 6. `mill-updates-v3.sql` — multi-contact support on mills (contacts jsonb)
 7. `mill-updates-v4.sql` — To-Do comments thread, progress %, bottleneck flag
 8. `schedule-v5.sql` — scheduling upgrade: start/end dates, order numbers (IN/SE/PM/RN-YYMM-###), tickets, production link
-9. `machines-dedupe-v6.sql` — removes duplicate machines (same Tailscale IP) and blocks future duplicates  ← **run this now**
+9. `machines-dedupe-v6.sql` — removes duplicate machines (same Tailscale IP) and blocks future duplicates
+10. `wo-numbering-v7.sql` — atomic Work Order numbering (fixes duplicate WO numbers under concurrent scheduling)
+11. `issues-v8.sql` — adds the "Issues Faced by Engineer" category (Mechanical/Electrical/Miscommunication/Accommodation/Transport)  ← **run this now (all of 9-11 if not already run)**
 
 ## Deploy
 Copy all files to the repo root, commit, push. GitHub Pages serves from root.
