@@ -24,5 +24,9 @@ Supabase URL + anon key are baked in; localStorage settings override them if pre
 ## Deploy
 Copy all files to the repo root, commit, push. GitHub Pages serves from root.
 
+## Where to find things
+- **Installation order fields** (lens, light, slipring, electrical, internet IP, sensor connection, camera & cable, image coverage, wire routing): open `work_order.html` → pick **"Machine Installation Order"** (not Service/Repair — these fields only appear on Installation orders) → fill Job details → Site Readiness → the **Machines** step has all of it, grouped under "Camera & Cable Details", "Slipring", "Electrical Readings", "Internet IP", "Sensor Connection", "Image Coverage", "Wire Routing Comments". If a machine card looks collapsed, click its header to expand.
+- **Installation Hardware Dashboard** (new): `index.html` → Admin tab → scroll to "Installation Hardware Dashboard". Aggregates lens/light/camera/cable/slipring/sensor types, flags earthing faults (0V Neutral–Ground), shows Open vs Assigned IP counts, average image coverage, and recent wire routing notes — across every submitted Installation Order. Click any bar to see which mill/machine it came from.
+
 ## Importing your existing data
 On the Mills page click **Download Import Template** → fill the two sheets ("Mills & Machines" with all Knit-I fields, "Updates" for pain points/requirements/etc.) → **Import from Excel**. Any other Excel also works via column-mapping (basic fields only).

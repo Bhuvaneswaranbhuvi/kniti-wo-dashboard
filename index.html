@@ -55,6 +55,22 @@
   .cal-nav button{padding:6px 14px;}
   .overdue-banner{background:#F3DCDC;border:1px solid #E0A8A0;border-radius:8px;padding:12px;margin-bottom:16px;}
   .overdue-banner h3{color:#8A2C2C;border:none;margin:0 0 8px;padding:0;}
+  .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:10px;}
+  .dash-panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px;}
+  .dash-panel h4{margin:0 0 10px;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--steel);}
+  .dash-bar-row{margin-bottom:8px;}
+  .dash-bar-label{font-size:12.5px;margin-bottom:3px;display:flex;justify-content:space-between;}
+  .dash-bar-track{background:#EFEEE9;border-radius:5px;height:8px;overflow:hidden;}
+  .dash-bar-fill{background:var(--steel);height:100%;}
+  .dash-bar-detail{background:#F6F5F1;border-radius:6px;padding:6px 10px;margin:-2px 0 8px;}
+  .dash-detail-row{font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line);}
+  .dash-detail-row:last-child{border-bottom:none;}
+  .dash-alert-card{background:#F3DCDC;border:1px solid #E0A8A0;border-radius:8px;padding:12px 14px;color:#8A2C2C;}
+  .dash-ok-card{background:#DCEFE1;border:1px solid #B6DCC0;border-radius:8px;padding:12px 14px;color:#2C6B3F;font-size:13px;}
+  .dash-stat-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .dash-stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 18px;text-align:center;}
+  .dash-stat b{display:block;font-size:20px;color:var(--navy,#16232E);}
+  .dash-stat span{font-size:10.5px;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.03em;}
   #detailOverlay{position:fixed;inset:0;background:rgba(10,14,18,.6);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 16px;z-index:100;}
   .modal-overlay{position:fixed;inset:0;background:rgba(10,14,18,.6);display:none;align-items:center;justify-content:center;overflow:auto;padding:30px 16px;z-index:150;}
   .modal-overlay.show{display:flex;}
@@ -850,7 +866,7 @@ function renderAssignTable(rows){
           <td>${esc(r.customer)}</td>
           <td>${esc(r.start_date||r.scheduled_date)||'—'}</td>
           <td>${esc(r.end_date)||'—'}</td>
-          <td><span class="status-chip ${r.status}">${r.status.replace('_',' ')}</span></td>
+          <td><span class="status-chip ${r.status||'scheduled'}">${(r.status||'scheduled').replace('_',' ')}</span></td>
           <td>${esc(r.ticket_no)||'—'}</td>
           <td style="max-width:180px;">${esc(r.notes)||'—'}</td>
           <td style="white-space:nowrap;">
@@ -1106,7 +1122,7 @@ async function loadSchedule(){
             <td>${esc(a.customer)}</td>
             <td>${esc(a.location)||'—'}</td>
             <td><span class="chip ${a.order_type}">${a.order_type==='installation'?'Install':'Service'}</span></td>
-            <td><span class="status-chip ${a.status}">${a.status.replace('_',' ')}</span></td>
+            <td><span class="status-chip ${a.status||'scheduled'}">${(a.status||'scheduled').replace('_',' ')}</span></td>
           </tr>`).join('')}
       </tbody>
     </table>` : '<p class="sub" style="margin-bottom:20px;">Nothing scheduled.</p>'}`;
@@ -1220,6 +1236,9 @@ async function loadAdmin(){
 
     <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--steel);border-bottom:1px solid var(--line);padding-bottom:6px;margin:26px 0 12px;">Parts Failure Analytics</h3>
     <div id="partsAnalyticsWrap"></div>
+
+    <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--steel);border-bottom:1px solid var(--line);padding-bottom:6px;margin:26px 0 12px;">Installation Hardware Dashboard</h3>
+    <div id="installDashWrap"></div>
   `;
 
   wrap.querySelectorAll('[data-save-role]').forEach(btn=>{
@@ -1274,6 +1293,7 @@ async function loadAdmin(){
 
   renderEngineerPerformance(orders);
   renderPartsAnalytics(orders);
+  renderInstallDashboard(orders);
 }
 
 function renderEngineerPerformance(orders){
@@ -1383,6 +1403,178 @@ function renderPartsAnalytics(orders){
       <thead><tr><th>Engineer</th><th>Total Parts Used</th></tr></thead>
       <tbody>${engRows}</tbody>
     </table>` : '<div class="empty">No parts recorded yet.</div>';
+}
+
+// ================= Installation Hardware Dashboard =================
+// Aggregates lens/light/slipring/camera/cable/sensor/electrical/network
+// details across every submitted Installation Order's per-machine data,
+// with click-to-drill-down onto which mill/machine/engineer each value
+// came from.
+function aggregateInstallDetails(orders){
+  const stats = {
+    lens:{}, lightType:{}, lightModel:{}, camType:{}, cable:{},
+    slipring:{}, sensorType:{}, sensorMode:{}
+  };
+  const detail = {}; // "bucket:value" -> [{mill, machine, eng, wo}]
+  const earthFaults = [];
+  const coverageSamples = [];
+  const wireComments = [];
+  const assignedIps = [];
+  let openIpCount = 0, assignedIpCount = 0, machineCount = 0;
+
+  function bump(bucket, key, ctx){
+    if(!key) return;
+    stats[bucket][key] = (stats[bucket][key]||0) + 1;
+    const dKey = bucket+':'+key;
+    (detail[dKey] = detail[dKey]||[]).push(ctx);
+  }
+
+  orders.filter(o=>o.order_type==='installation' && o.data && Array.isArray(o.data.machines)).forEach(o=>{
+    const mill = o.customer || '(unknown mill)';
+    const eng = o.engineer || '(unassigned)';
+    (o.data.machines||[]).forEach(m=>{
+      machineCount++;
+      const machine = m.kmName || m.machineType || 'Machine';
+      const ctx = { mill, machine, eng };
+      const n = parseInt(m.numCams,10) || 1;
+      for(let c=1;c<=n;c++){
+        bump('lens', m[`cam${c}_lens`], ctx);
+        bump('lightType', m[`cam${c}_lightType`], ctx);
+        bump('lightModel', m[`cam${c}_lightModel`], ctx);
+        bump('camType', m[`cam${c}_camType`], ctx);
+        bump('cable', m[`cam${c}_cableType`], ctx);
+      }
+      bump('slipring', m.sliprModel, ctx);
+      bump('sensorType', m.sensorType, ctx);
+      bump('sensorMode', m.sensorMode, ctx);
+      if(m.internetIpMode === 'assigned'){
+        assignedIpCount++;
+        if(m.internetIpAddress) assignedIps.push({ ...ctx, ip: m.internetIpAddress });
+      } else if(m.internetIpMode === 'open'){
+        openIpCount++;
+      }
+      if(m.electricalNG !== '' && m.electricalNG != null && !isNaN(parseFloat(m.electricalNG)) && parseFloat(m.electricalNG) === 0){
+        earthFaults.push(ctx);
+      }
+      if(m.imageCoverageLength && m.imageCoverageBreadth){
+        coverageSamples.push({ l: parseFloat(m.imageCoverageLength)||0, b: parseFloat(m.imageCoverageBreadth)||0 });
+      }
+      if(m.wireRoutingComments) wireComments.push({ ...ctx, text: m.wireRoutingComments });
+    });
+  });
+
+  return { stats, detail, earthFaults, coverageSamples, wireComments, assignedIps, openIpCount, assignedIpCount, machineCount };
+}
+
+function barListHtml(bucket, counts, detail, total){
+  const entries = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  if(!entries.length) return '<p class="sub">No data yet.</p>';
+  const max = Math.max(...entries.map(k=>counts[k]));
+  return entries.map(k=>{
+    const pct = Math.round((counts[k]/max)*100);
+    const dKey = `${bucket}:${k}`;
+    return `
+    <div class="dash-bar-row" data-dash-toggle="${dKey}" style="cursor:pointer;">
+      <div class="dash-bar-label">${esc(k)} <span class="sub">(${counts[k]})</span></div>
+      <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${pct}%;"></div></div>
+    </div>
+    <div class="dash-bar-detail" id="dashdetail_${dKey.replace(/[^a-zA-Z0-9]/g,'_')}" style="display:none;">
+      ${(detail[dKey]||[]).map(d=>`<div class="dash-detail-row">${esc(d.mill)} — ${esc(d.machine)} <span class="sub">(${esc(d.eng)})</span></div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderInstallDashboard(orders){
+  const wrap = document.getElementById('installDashWrap');
+  const { stats, detail, earthFaults, coverageSamples, wireComments, assignedIps, openIpCount, assignedIpCount, machineCount } = aggregateInstallDetails(orders);
+
+  if(!machineCount){
+    wrap.innerHTML = '<div class="empty">No installation orders with machine details submitted yet.</div>';
+    return;
+  }
+
+  const avgL = coverageSamples.length ? (coverageSamples.reduce((s,c)=>s+c.l,0)/coverageSamples.length).toFixed(1) : '—';
+  const avgB = coverageSamples.length ? (coverageSamples.reduce((s,c)=>s+c.b,0)/coverageSamples.length).toFixed(1) : '—';
+
+  const faultCard = earthFaults.length ? `
+    <div class="dash-alert-card">
+      <b>⚠ ${earthFaults.length} Earthing Fault${earthFaults.length>1?'s':''} Detected</b>
+      <p class="sub" style="margin:4px 0 8px;">Neutral–Ground reading of 0V (possible continuity fault) recorded on:</p>
+      ${earthFaults.map(f=>`<div class="dash-detail-row">${esc(f.mill)} — ${esc(f.machine)} <span class="sub">(${esc(f.eng)})</span></div>`).join('')}
+    </div>` : `<div class="dash-ok-card">✓ No earthing faults (0V Neutral–Ground) recorded across ${machineCount} machine(s).</div>`;
+
+  const ipCard = `
+    <div class="dash-stat-row">
+      <div class="dash-stat"><b>${openIpCount}</b><span>Open IP</span></div>
+      <div class="dash-stat"><b>${assignedIpCount}</b><span>Assigned IP</span></div>
+    </div>
+    ${assignedIps.length ? `<div style="margin-top:8px;">${assignedIps.map(a=>`<div class="dash-detail-row">${esc(a.ip)} — ${esc(a.mill)} / ${esc(a.machine)}</div>`).join('')}</div>` : ''}`;
+
+  const wireCard = wireComments.length ? wireComments.slice(0,10).map(w=>`
+    <div class="dash-detail-row"><b>${esc(w.mill)} — ${esc(w.machine)}</b><br>${esc(w.text)}</div>`).join('') : '<p class="sub">No wire routing comments recorded yet.</p>';
+
+  wrap.innerHTML = `
+    <p class="sub" style="margin-bottom:14px;">Across ${machineCount} machine${machineCount>1?'s':''} from submitted Installation Orders. Click any bar to see which mill/machine/engineer it came from.</p>
+
+    <div class="dash-grid">
+      <div class="dash-panel">
+        <h4>Lens Type</h4>
+        ${barListHtml('lens', stats.lens, detail)}
+      </div>
+      <div class="dash-panel">
+        <h4>Light Type</h4>
+        ${barListHtml('lightType', stats.lightType, detail)}
+      </div>
+      <div class="dash-panel">
+        <h4>Light Model</h4>
+        ${barListHtml('lightModel', stats.lightModel, detail)}
+      </div>
+      <div class="dash-panel">
+        <h4>Camera Type</h4>
+        ${barListHtml('camType', stats.camType, detail)}
+      </div>
+      <div class="dash-panel">
+        <h4>Cable Used</h4>
+        ${barListHtml('cable', stats.cable, detail)}
+      </div>
+      <div class="dash-panel">
+        <h4>Slipring Model</h4>
+        ${barListHtml('slipring', stats.slipring, detail)}
+      </div>
+      <div class="dash-panel">
+        <h4>Sensor Type</h4>
+        ${barListHtml('sensorType', stats.sensorType, detail)}
+      </div>
+      <div class="dash-panel">
+        <h4>Sensor Connection Mode</h4>
+        ${barListHtml('sensorMode', stats.sensorMode, detail)}
+      </div>
+    </div>
+
+    <h4 style="margin-top:22px;">Electrical Safety</h4>
+    ${faultCard}
+
+    <h4 style="margin-top:22px;">Internet IP</h4>
+    ${ipCard}
+
+    <h4 style="margin-top:22px;">Image Coverage — Average</h4>
+    <div class="dash-stat-row">
+      <div class="dash-stat"><b>${avgL} cm</b><span>Avg Length</span></div>
+      <div class="dash-stat"><b>${avgB} cm</b><span>Avg Breadth</span></div>
+      <div class="dash-stat"><b>${coverageSamples.length}</b><span>Samples</span></div>
+    </div>
+
+    <h4 style="margin-top:22px;">Recent Wire Routing Comments</h4>
+    ${wireCard}
+  `;
+
+  wrap.querySelectorAll('[data-dash-toggle]').forEach(row=>{
+    row.onclick = ()=>{
+      const key = row.getAttribute('data-dash-toggle');
+      const el = document.getElementById('dashdetail_'+key.replace(/[^a-zA-Z0-9]/g,'_'));
+      if(el) el.style.display = el.style.display === 'none' ? '' : 'none';
+    };
+  });
 }
 
 // ================= PDF generator (adapted from work_order.html to work on a fetched order object) =================

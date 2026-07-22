@@ -240,7 +240,7 @@
     <select id="eMachine" style="width:100%;"></select>
     <div id="eIssueTypeWrap" style="display:none;">
       <label class="f">Issue Type</label>
-      <select id="eIssueType" style="width:100%;">${ISSUE_TYPE_OPTS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+      <select id="eIssueType" style="width:100%;"></select>
     </div>
     <label class="f">Title</label>
     <input type="text" id="eTitle" style="width:100%;" placeholder="Short summary">
@@ -536,10 +536,15 @@ function millStats(mill){
   const orders = ordersForMill(mill);
   const assignments = assignmentsForMill(mill);
   const prod = productionForMill(mill);
+  const visitLogs = MU.updates.filter(u => u.mill_id === mill.id && u.category === 'visit_log');
   const pending = assignments.filter(a => a.status === 'scheduled' || a.status === 'in_progress').length;
   const csats = orders.map(o=>o.csat_rating).filter(n=>n>0);
   const avgCsat = csats.length ? (csats.reduce((a,b)=>a+b,0)/csats.length).toFixed(1) : '—';
-  const lastDates = [...orders.map(o=>o.created_at), ...assignments.map(a=>a.scheduled_date)].filter(Boolean).sort().reverse();
+  const lastDates = [
+    ...orders.map(o=>o.created_at),
+    ...assignments.map(a=>a.scheduled_date),
+    ...visitLogs.map(v=>v.visit_date || v.created_at)
+  ].filter(Boolean).sort().reverse();
   const openTodos = MU.updates.filter(u=>u.mill_id===mill.id && u.category==='todo' && u.status!=='done').length;
   const shortages = prod.reduce((n,p)=>n+((p.bom||[]).filter(b=>b.status==='shortage').length),0);
   return { machines: machines.length, orders: orders.length, pending, avgCsat, lastVisit: lastDates[0]||null, openTodos, prodPlans: prod.length, shortages };
@@ -703,12 +708,13 @@ function renderEntryCard(e){
   const showStatus = e.category === 'todo';
   const showPriority = e.category === 'todo' || e.category === 'pain_point';
   const showProgress = e.category === 'todo';
+  const issueTypeLabel = e.category === 'issue' ? (ISSUE_TYPE_OPTS.find(([v])=>v===e.issue_type)||[,e.issue_type])[1] : null;
   const comments = e.comments || [];
   return `
     <div class="entry ${e.flagged?'flagged':''}">
       <div class="top">
         <div>
-          <div class="title">${esc(e.title || '(untitled)')} ${e.flagged?'<span class="chip urgent">🚩 Blocked</span>':''}</div>
+          <div class="title">${esc(e.title || '(untitled)')} ${issueTypeLabel?`<span class="chip urgent">${esc(issueTypeLabel)}</span>`:''} ${e.flagged?'<span class="chip urgent">🚩 Blocked</span>':''}</div>
           <div class="meta">${esc(machineName(e.machine_id))} • ${e.category==='visit_log'&&e.visit_date?fmtDate(e.visit_date):fmtDate(e.created_at)} • ${esc(e.created_by_name||'Unknown')}</div>
         </div>
         <div class="row" style="gap:6px;">
@@ -1175,6 +1181,9 @@ MU.openEntryModal = function(category, editId){
   document.getElementById('ePriorityRow').style.display = (category==='todo'||category==='pain_point') ? 'grid' : 'none';
   document.getElementById('eStatusWrap').style.display = category === 'todo' ? '' : 'none';
   document.getElementById('eVisitDateWrap').style.display = category === 'visit_log' ? '' : 'none';
+  document.getElementById('eIssueTypeWrap').style.display = category === 'issue' ? '' : 'none';
+  document.getElementById('eIssueType').innerHTML = ISSUE_TYPE_OPTS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  document.getElementById('eIssueType').value = existing ? (existing.issue_type || 'mechanical') : 'mechanical';
   document.getElementById('entryModal').classList.add('show');
 };
 
@@ -1269,6 +1278,7 @@ document.getElementById('eSaveBtn').onclick = async function(){
       priority: document.getElementById('ePriority').value,
       status: MU.pendingCategory === 'todo' ? document.getElementById('eStatus').value : 'open',
       visit_date: MU.pendingCategory === 'visit_log' ? (document.getElementById('eVisitDate').value || null) : null,
+      issue_type: MU.pendingCategory === 'issue' ? document.getElementById('eIssueType').value : null,
       images: urls
     };
     let res;
@@ -1587,11 +1597,13 @@ function entryRows(mills, cat, from, to){
     })
     .map(u=>{
       const mill = MU.mills.find(m=>m.id===u.mill_id);
-      return {
+      const row = {
         Mill: mill?mill.name:'', Machine: machineName(u.machine_id), Title: u.title||'', Details: u.description||'',
         Priority: u.priority, Status: u.status, 'Date': (u.visit_date||String(u.created_at).slice(0,10)),
         'Reported By': u.created_by_name||'', Photos: (u.images||[]).length
       };
+      if(u.category === 'issue') row['Issue Type'] = (ISSUE_TYPE_OPTS.find(([v])=>v===u.issue_type)||[,u.issue_type||''])[1];
+      return row;
     });
 }
 function machineRows(mills){
